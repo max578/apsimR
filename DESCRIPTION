@@ -1,0 +1,58 @@
+Package: apsimR
+Title: APSIM Next Generation as a Contract-Emitting Analysis Member
+Version: 0.0.0.9000
+Authors@R:
+    person("Max", "Moldovan", , "max.moldovan@adelaide.edu.au",
+           role = c("aut", "cre", "cph"),
+           comment = c(ORCID = "0000-0001-9680-8474"))
+Description: A typed, server-capable R interface to APSIM Next Generation, the
+    process-based agricultural systems simulator. Drives the simulator for
+    prediction over scenario designs, mechanism-parameter estimation, parameter
+    calibration against observations (a bounded optimiser, or an iterative
+    ensemble smoother when 'PESTO' is present), global sensitivity analysis
+    (Morris and Sobol), Gaussian-process emulation with leave-one-out
+    diagnostics, validation against observations (goodness-of-fit metrics and a
+    typed verdict), and the generation of known-causal-structure datasets for
+    testing causal-inference methods, and returns results as a versioned,
+    provenance-complete object
+    compatible with the 'PESTO' ensemble-manifest contract, so simulator output
+    composes directly with downstream calibration, uncertainty-quantification and
+    causal-inference tools. Execution degrades gracefully: every entry point
+    abstains with a typed reason when the simulator or its runtime is absent.
+    The package's own sources are released under the MIT licence; when used with
+    'apsimx' (GPL-3) or 'PESTO' (GPL (>= 3)) the installed combination is a
+    combined work subject to the terms of the GPL (>= 3).
+License: MIT + file LICENSE
+URL: https://github.com/max578/apsimR
+BugReports: https://github.com/max578/apsimR/issues
+Depends:
+    R (>= 4.1.0)
+Imports:
+    DBI,
+    digest,
+    jsonlite,
+    lhs,
+    processx,
+    RSQLite,
+    S7,
+    sensitivity,
+    stats,
+    tools,
+    utils
+Suggests:
+    apsimx (>= 2.7.0),
+    ggplot2,
+    knitr,
+    PESTO (>= 0.6.0),
+    rmarkdown,
+    testthat (>= 3.0.0)
+VignetteBuilder: knitr
+Config/testthat/edition: 3
+Encoding: UTF-8
+Language: en-AU
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.3
+SystemRequirements: APSIM Next Generation (>= 2024.1) and the .NET 8.0 Runtime,
+    for the bundled 'Models' and 'apsim-server' executables. The package builds,
+    installs and checks without them; entry points that need the simulator
+    abstain when it is absent.

@@ -1,0 +1,12 @@
+^apsimR\.Rproj$
+^\.Rproj\.user$
+^LICENSE\.md$
+^\.github$
+^\.claude$
+^\.positai$
+^\.cursor$
+^cran-comments\.md$
+^CRAN-SUBMISSION$
+^revdep$
+^\.lintr$
+^codecov\.yml$

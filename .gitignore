@@ -1,0 +1,23 @@
+# R build artefacts
+*.tar.gz
+*.Rcheck/
+..Rcheck/
+.Rhistory
+.RData
+.Rproj.user
+inst/doc
+/doc/
+/docs/
+
+# APSIM run scratch / engine detritus
+*.db
+*.db-shm
+*.db-wal
+*.apsimx.bak
+APSIM*.cs
+tmp*.tmp
+clr-debug-pipe-*
+dotnet-diagnostic-*
+
+# OS
+.DS_Store

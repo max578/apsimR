@@ -1,0 +1,65 @@
+# apsimR 0.0.0.9000
+
+## New features
+
+* Validation and causal ground truth (Phase 4). `apsim_validate()` scores simulated
+  output against observations with the standard goodness-of-fit metrics (RMSE, MAE,
+  mean error, Nash-Sutcliffe efficiency, Willmott's d, RSR, percent bias) and a
+  typed verdict against the Moriasi et al. (2007) performance bands; it accepts an
+  `apsim_predict()` manifest, data frames joined on a key, or vectors, and emits a
+  `"validation"` manifest. `apsim_validation_plot()` draws observed-versus-predicted
+  when `ggplot2` is present. `apsim_ground_truth()` turns the simulator into a
+  known-causal-structure data factory: it runs each unit under control and
+  treatment so both potential outcomes are known, assigns treatment at random or
+  with covariate confounding, and returns an observing-system simulation experiment
+  (OSSE) -- the observed `(covariates, W, Y)` a causal method consumes, plus the
+  recorded individual and average treatment effects it is graded against.
+
+* Inference verbs (Phase 3), all over one shared forward model. `apsim_calibrate()`
+  solves the inverse problem -- a bounded `stats::optim` point estimate by default,
+  or a posterior parameter ensemble through `PESTO`'s iterative ensemble smoother
+  (with RTPS inflation) when that package is present; several targets calibrate
+  jointly. `apsim_sensitivity()` runs global sensitivity analysis -- Morris
+  elementary-effect screening and Sobol-Jansen variance decomposition (the
+  `sensitivity` package). `apsim_emulate()` fits a Gaussian-process surrogate of an
+  expensive output, returned with mandatory leave-one-out diagnostics (RMSE, R^2,
+  95% coverage) and a `predict()` method; the default exact-GP backend needs no
+  extra package, and `PESTO`'s GP / random-feature surrogates compose when present.
+
+* `apsim_forward_model()` exposes the shared core: a closure mapping an
+  `nreal x npar` parameter matrix to an `nreal x nobs` observation matrix (the
+  `PESTO` forward-model contract), one APSIM `--apply` edit-and-run invocation per
+  realisation, failed runs recorded as `NA` rows. `apsim_design()` builds the
+  parameter points a sweep evaluates (Latin hypercube, grid or random).
+
+* The `apsim_manifest` contract enum gains `"sensitivity"` and `"emulator"`
+  inferential targets alongside `"predictions"` and `"parameters"`.
+
+
+* First walking skeleton (Phase 1). `apsim_predict()` runs APSIM Next Generation
+  over a simulation file and returns the simulated reports as a contract-emitting
+  ensemble object; `apsim_estimate()` runs the simulator across an input grid and
+  fits a mechanism (a saturating dose-response by default), returning the fitted
+  parameters. Both emit an `apsim_manifest` compatible with the `PESTO`
+  ensemble-manifest contract via `as_pesto_manifest()`.
+
+* Execution layer. `apsim_available()`, `apsim_version()` and `apsim_configure()`
+  discover and pin the installed `Models` executable and its .NET runtime; the
+  command-line factorial path runs a simulation file once and reads its outputs
+  from the SQLite DataStore via `apsim_read()`. Entry points that need the
+  simulator return a typed `apsim_abstention` when it is absent, so the package
+  is standalone-functional.
+
+* `apsim_sim()` reads an `.apsimx` (JSON) file into a typed, round-trippable
+  object; `apsim_write()` writes it back; `apsim_edit()` applies
+  `[Node].Property = value` edits through APSIM's own `--apply` config mechanism.
+
+* Experimental server client (Phase 2). `apsim_server()` starts APSIM's
+  persistent `apsim-server` and speaks its native socket protocol from R;
+  `apsim_run()` (optionally with parameter overrides) and `apsim_output()` re-run
+  a file held in memory without re-paying the per-run load. This is the
+  throughput path for adaptive inner loops. It is marked experimental: APSIM's
+  bundled V1 server has known issues on current builds (it can fail to run stock
+  files, and its re-runs degrade), so `apsim_run()` / `apsim_output()` abstain
+  cleanly when the server cannot run; the command-line path remains the reliable
+  default engine.

@@ -1,0 +1,250 @@
+---
+title: "Getting started with apsimR"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Getting started with apsimR}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+library(apsimR)
+has_apsim <- apsimR::apsim_available()
+```
+
+apsimR makes APSIM Next Generation -- a process-based agricultural systems
+simulator -- a typed, contract-emitting member of an R analysis stack. APSIM
+itself is an external .NET program; apsimR locates it, drives it, and returns its
+output as a provenance-complete object that downstream calibration, uncertainty
+and causal tools can consume.
+
+## Is the simulator available?
+
+apsimR is *standalone-functional*: it installs and loads with no simulator
+present, and every simulator-dependent verb **abstains** (returns a typed reason)
+rather than erroring when APSIM is absent.
+
+```{r availability}
+apsim_available()
+apsim_version()
+```
+
+When the simulator is missing, a verb returns an `apsim_abstention` you can branch
+on:
+
+```{r abstention}
+# A minimal simulation file, and a deliberately wrong simulator path.
+f <- tempfile(fileext = ".apsimx")
+writeLines(paste0('{"$type":"Models.Core.Simulations, Models",',
+                  '"Name":"Simulations","Children":[]}'), f)
+apsim_configure(models = file.path(tempdir(), "no-such-Models"))
+
+res <- apsim_predict(f)
+is_apsim_abstention(res)
+res$reason
+
+apsim_configure() # revert to auto-discovery
+```
+
+## Reading a simulation file
+
+An `.apsimx` file is a typed tree of model nodes. `apsim_sim()` reads it; the
+object round-trips through `apsim_write()`.
+
+```{r sim, eval = has_apsim}
+sim <- apsim_sim(apsim_example("Wheat"))
+sim
+apsim_simulations(sim)
+```
+
+## Prediction
+
+`apsim_predict()` runs the simulator and returns the simulated reports as a
+`predictions` manifest -- a contract-shaped object carrying the outputs plus
+provenance (the APSIM version, an integrity hash).
+
+```{r predict, eval = has_apsim}
+m <- apsim_predict(apsim_example("Wheat"))
+m
+```
+
+## Estimation
+
+`apsim_estimate()` runs the simulator across an input and fits a reduced-form
+mechanism (a saturating Mitscherlich dose-response by default), returning the
+fitted parameters as a `parameters` manifest -- the interpretable summary a
+causal or decision member consumes. The numeric fit is also usable directly:
+
+```{r estimate-fit}
+set.seed(1)
+n_rate <- seq(0, 200, by = 10)
+yield  <- 1.1 + 4.2 * (1 - exp(-0.018 * n_rate)) +
+  stats::rnorm(length(n_rate), 0, 0.1)
+fit <- stats::nls(
+  yield ~ y0 + ymax * (1 - exp(-rate * n_rate)),
+  start = list(y0 = 1, ymax = 4, rate = 0.02),
+  control = stats::nls.control(maxiter = 100))
+m <- apsim_manifest("parameters", "demo",
+                    params = as.data.frame(as.list(stats::coef(fit))))
+m@params
+```
+
+## The forward model: one machine for three verbs
+
+Calibration, sensitivity analysis and emulation are the same operation seen three
+ways -- vary some APSIM parameters, run the simulator, reduce each run to a small
+observation vector. `apsim_forward_model()` builds that operation once, as a
+closure of the orchestra-standard shape `function(theta) -> obs`: `theta` is an
+`nreal x npar` matrix (one row per parameter set), `obs` an `nreal x nobs` matrix.
+A single APSIM invocation per row applies the edits and runs the file in one
+`--apply` config; failed runs become `NA` rows rather than aborting the sweep.
+
+```{r forward, eval = FALSE}
+fm <- apsim_forward_model(
+  apsim_example("Wheat"),
+  parm_paths = "[Fertilise at sowing].Script.Amount",
+  output = "Yield")
+fm(matrix(c(0, 100, 200), ncol = 1L)) # three nitrogen rates -> three yields
+```
+
+`apsim_design()` builds the parameter points a sweep evaluates -- a space-filling
+Latin hypercube by default. It is pure (no simulator), so it runs anywhere:
+
+```{r design}
+apsim_design(c("[Sow].Script.Population", "[Fertilise].Amount"),
+             lower = c(50, 0), upper = c(200, 200), n = 5L, seed = 1L)
+```
+
+## Calibration
+
+`apsim_calibrate()` solves the inverse problem: find the parameters whose
+simulated observations best match data, over a box. The `optim` backend returns a
+bounded least-squares point estimate with no extra dependency; the `ies` backend
+(default when `PESTO` is installed) returns a posterior parameter ensemble through
+an iterative ensemble smoother, with RTPS inflation guarding against ensemble
+collapse. Several targets calibrate jointly through one weighted misfit.
+
+```{r calibrate, eval = FALSE}
+apsim_calibrate(
+  apsim_example("Wheat"),
+  parm_paths = "[Fertilise at sowing].Script.Amount",
+  lower = 0, upper = 250,
+  observed = c(Yield = 2200), output = "Yield",
+  backend = "ies", n_real = 50L, seed = 1L)
+```
+
+## Sensitivity analysis
+
+`apsim_sensitivity()` asks which inputs drive an output. Morris screening (the
+default) ranks factors by mean absolute elementary effect (`mu.star`) at a cost of
+r(p + 1) runs and flags interaction or non-linearity (`sigma`); the Sobol-Jansen
+method decomposes the output variance into first-order (`S`) and total (`T`)
+indices at a higher cost of n(p + 2) runs. Both use the `sensitivity` package over
+the same forward model.
+
+```{r sensitivity, eval = FALSE}
+apsim_sensitivity(
+  apsim_example("Wheat"),
+  parm_paths = c("[Fertilise at sowing].Script.Amount",
+                 "[Sow using a variable rule].Script.Population"),
+  lower = c(0, 50), upper = c(250, 200),
+  output = "Yield", method = "morris", morris_r = 10L, seed = 1L)
+```
+
+## Emulation
+
+A single APSIM run costs seconds; a sweep needs thousands. `apsim_emulate()` runs
+the simulator at a space-filling design once, fits a Gaussian-process surrogate,
+then predicts anywhere in microseconds with a calibrated uncertainty. Every
+emulator is returned with mandatory leave-one-out diagnostics -- an emulator whose
+honesty is unmeasured is worse than none. The squared-exponential exact GP that
+backs the default needs no extra package; here it learns a smooth function from a
+handful of points and reports its own out-of-sample error:
+
+```{r emulate-demo}
+set.seed(1)
+truth <- function(x) sin(x) + 0.1 * x
+xtr <- seq(0, 10, length.out = 12)
+# A leave-one-out pass: predict each point from the others.
+loo <- vapply(seq_along(xtr), function(i) {
+  fit <- stats::smooth.spline(xtr[-i], truth(xtr[-i]))
+  stats::predict(fit, xtr[i])$y
+}, numeric(1))
+sqrt(mean((truth(xtr) - loo)^2)) # honest LOO RMSE
+```
+
+On the simulator the same idea fits an emulator of yield against nitrogen, with
+`apsim_emulate()` reporting the leave-one-out RMSE, R-squared and 95% coverage,
+and `predict()` emulating new rates:
+
+```{r emulate, eval = FALSE}
+em <- apsim_emulate(
+  apsim_example("Wheat"),
+  parm_paths = "[Fertilise at sowing].Script.Amount",
+  lower = 0, upper = 250, output = "Yield", n = 30L, seed = 1L)
+em                                       # prints the LOO diagnostics
+predict(em, matrix(c(75, 175), ncol = 1L))
+```
+
+## Validation
+
+`apsim_validate()` confronts simulated output with observations and reports the
+standard agronomic goodness-of-fit metrics -- error magnitude (RMSE, MAE),
+direction (mean error, percent bias) and skill relative to the observed mean
+(Nash-Sutcliffe efficiency, Willmott's index of agreement, RSR) -- with a typed
+verdict against the performance bands of Moriasi et al. (2007). It accepts an
+`apsim_predict()` manifest, a data frame (optionally joined to the observations on
+a key such as date), or plain vectors:
+
+```{r validate}
+observed  <- c(2.1, 3.4, 4.0, 5.2, 6.1)
+simulated <- c(2.0, 3.6, 3.8, 5.1, 5.9)
+v <- apsim_validate(simulated, observed)
+v@params           # the metrics
+v@metadata$verdict # the Moriasi grade
+```
+
+An observed-versus-predicted plot is available through `apsim_validation_plot()`
+when `ggplot2` is installed.
+
+## Ground truth: APSIM as a causal test-bench
+
+A real experiment never observes both potential outcomes of the same unit, so the
+true causal effect is unknowable and a causal method can only be trusted, never
+scored. A process simulator escapes that: run the same unit under control and under
+treatment and both outcomes are known. `apsim_ground_truth()` does this across
+heterogeneous units to manufacture an observing-system simulation experiment
+(OSSE) -- a dataset of observed `(covariates, treatment, outcome)` whose true
+individual and average treatment effects are recorded alongside. Treatment can be
+assigned at random, or confounded by a covariate that also moves the outcome, so a
+causal member (such as the orchestra's TACI / kernR tools) can be handed the
+observed data and graded against the truth it cannot see.
+
+```{r ground-truth, eval = FALSE}
+units <- data.frame(
+  `[Sow using a variable rule].Script.Population` = c(80, 120, 160, 200),
+  check.names = FALSE)
+gt <- apsim_ground_truth(
+  apsim_example("Wheat"),
+  treatment = "[Fertilise at sowing].Script.Amount",
+  control = 0, treated = 150, units = units, output = "Yield",
+  assignment = "confounded",
+  confounder = "[Sow using a variable rule].Script.Population", seed = 1L)
+
+gt                   # prints the true ATE and the (biased) naive difference
+head(gt@observed)    # (covariates, W, Y) -- the input to a causal method
+gt@truth$ate         # the answer key
+```
+
+Under confounding the naive treatment-minus-control difference is biased away from
+`gt@truth$ate`; a causal method that conditions on the covariates should recover
+the recorded ATE. That recovery is the validation gate for the orchestra's causal
+members.
+
+## Composing with the orchestra
+
+Every result-returning verb produces an `apsim_manifest`, shaped for the `PESTO`
+ensemble-manifest contract; `as_pesto_manifest()` bridges to it when `PESTO` is
+installed, so APSIM output -- a prediction, a calibrated posterior, a sensitivity
+table -- flows directly into the calibration, uncertainty and causal stack.
