@@ -2,6 +2,18 @@
 
 ## New features
 
+* **Independent Oracle Principle (Phase-1 grounding).** `apsim_external_facts()`
+  / `apsim_fact_status()`: a registry of the class-8 APSIM facts apsimR asserts
+  (DataStore SQLite schema, the `"Current"` checkpoint, report columns, manager
+  node paths) with the oracle that grounds each. The DataStore schema and report
+  columns are grounded by a **replayed real run** (`test-datastore-grounding.R`)
+  that asserts the *fact* by name, not just non-emptiness -- closing the
+  "skip != pass" hole, and grounding the schema against a live run rather than
+  the shipped empty `Wheat.db` stub. The audit's inference that
+  `Wheat.AboveGround.Wt` is absent from the stock report was corrected by the
+  live oracle: the report emits both `Yield` and `Wheat.AboveGround.Wt`. Adds a
+  yield-vs-nitrogen monotonicity sign check (opt-in via `APSIMR_LIVE_TESTS`).
+
 * Validation and causal ground truth (Phase 4). `apsim_validate()` scores simulated
   output against observations with the standard goodness-of-fit metrics (RMSE, MAE,
   mean error, Nash-Sutcliffe efficiency, Willmott's d, RSR, percent bias) and a
