@@ -116,7 +116,7 @@
 
 # Silent-failure kinds: a wrong value returns wrong output with NO error, so a
 # live call "succeeding" is not enough -- they need a property / differential /
-# human oracle (D/E/F). (recipe 52 §2)
+# human oracle (D/E/F). (recipe 52 section 2)
 .silent_fact_kinds <- c("enum", "crs", "units", "constant", "schema", "rule")
 
 # NA-safe ISO date parse (never errors on bad input).
@@ -160,7 +160,7 @@
   silent <- registry$kind %in% .silent_fact_kinds
   has_def <- grepl("[DEF]", registry$oracle_types)
   if (any(silent & !has_def))
-    fail("silent-failure kind without a D/E/F oracle (recipe 52 §2)")
+    fail("silent-failure kind without a D/E/F oracle (recipe 52 section 2)")
 
   is_rule <- registry$kind == "rule"
   bad_signoff <- is_rule & (is.na(registry$signoff) | !nzchar(registry$signoff))

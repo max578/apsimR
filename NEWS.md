@@ -1,4 +1,12 @@
-# apsimR 0.0.0.9000
+# apsimR 0.1.0
+
+First formal release. `apsimR` enrols APSIM Next Generation into the orchestra as a
+typed, contract-emitting analysis member: every entry point returns a versioned,
+provenance-complete `apsim_manifest` compatible with the `PESTO` ensemble-manifest
+contract, and abstains with a typed reason when the simulator or its runtime is
+absent. The release consolidates the Phase-1 through Phase-4 walking skeleton, the
+inference verbs, the OSSE causal test-bench, and the Independent-Oracle grounding of
+the APSIM facts the package asserts.
 
 ## New features
 
