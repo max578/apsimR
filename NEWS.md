@@ -1,4 +1,4 @@
-# apsimR 0.2.0.9000 (development)
+# apsimR 0.2.0
 
 A stabilisation pass on the 0.1.0 core: the simulator-backed edit round-trip is
 fixed, the reference documentation is organised for a published site, and the
