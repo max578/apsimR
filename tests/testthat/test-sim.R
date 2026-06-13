@@ -34,12 +34,18 @@ test_that("on a real install, apsim_edit persists an edit", {
   skip_if_not(apsim_available(), "APSIM not installed")
   ex <- apsim_example("Wheat")
   skip_if(is.na(ex), "no Wheat example in this install")
+  wd_before <- normalizePath(getwd())
   out <- apsim_edit(apsim_sim(ex), c("[Clock].End" = "1990-06-30"))
-  if (is_apsim_abstention(out)) {
-    skip(paste("edit abstained:", out$reason))
-  }
+  # The edit round-trip must succeed on a real install: the relative-save
+  # invocation sidesteps APSIM 2026.5's absolute-save temp-path quirk under a
+  # sandboxed R session (see apsim_edit() and external_facts.R). An abstention
+  # here is a failure, not a tolerated skip.
+  expect_false(is_apsim_abstention(out))
   expect_true(S7::S7_inherits(out, apsim_sim))
   # The edit is present in the written file, and the source is untouched.
   expect_true(any(grepl("1990-06-30", unlist(out@json))))
   expect_false(any(grepl("1990-06-30", unlist(apsim_sim(ex)@json))))
+  # The working directory is restored after the edit (the fix sets it to the
+  # scratch directory for the relative-save invocation, then restores it).
+  expect_identical(normalizePath(getwd()), wd_before)
 })

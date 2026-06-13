@@ -1,0 +1,93 @@
+url: https://github.com/max578/apsimR
+
+template:
+  bootstrap: 5
+
+reference:
+- title: Simulation files
+  desc: >
+    Read an .apsimx file into a typed, round-trippable object, list its
+    simulations, write it back, and apply validated node-path edits.
+  contents:
+  - apsim_sim
+  - apsim_simulations
+  - apsim_write
+  - apsim_edit
+
+- title: Run and predict
+  desc: >
+    Drive the simulator over a scenario design and read its outputs as a
+    contract-emitting ensemble.
+  contents:
+  - apsim_predict
+  - apsim_design
+  - apsim_read
+  - apsim_reports
+
+- title: Calibrate and estimate
+  desc: >
+    Solve the inverse problem -- a bounded point estimate or a posterior
+    parameter ensemble -- and fit a mechanism to a simulated input grid.
+  contents:
+  - apsim_calibrate
+  - apsim_estimate
+
+- title: Sensitivity and emulation
+  desc: >
+    Screen and decompose parameter influence (Morris, Sobol) and fit a
+    Gaussian-process surrogate of an expensive output with leave-one-out
+    diagnostics.
+  contents:
+  - apsim_sensitivity
+  - apsim_emulate
+  - apsim_forward_model
+
+- title: Validate
+  desc: >
+    Score simulated output against observations with goodness-of-fit metrics
+    and a typed verdict, and draw observed-versus-predicted.
+  contents:
+  - apsim_validate
+  - apsim_validation_plot
+
+- title: Causal ground truth (OSSE)
+  desc: >
+    Turn the simulator into a known-causal-structure data factory: an
+    observing-system simulation experiment with both potential outcomes known.
+  contents:
+  - apsim_ground_truth
+
+- title: Contract manifest
+  desc: >
+    The versioned, provenance-complete result object and its bridge to the
+    'PESTO' ensemble-manifest contract.
+  contents:
+  - apsim_manifest
+  - as_pesto_manifest
+
+- title: Runtime and abstention
+  desc: >
+    Discover, configure and query the installed simulator; the typed refusal
+    returned when the runtime is absent.
+  contents:
+  - apsim_available
+  - apsim_version
+  - apsim_configure
+  - apsim_example
+  - apsim_server
+  - apsim_run
+  - apsim_output
+  - apsim_abstention
+  - is_apsim_abstention
+
+- title: External-fact grounding
+  desc: >
+    The Independent-Oracle registry of the APSIM facts the package asserts and
+    the date each was last diffed against a live install.
+  contents:
+  - apsim_external_facts
+  - apsim_fact_status
+
+- title: Package
+  contents:
+  - apsimR-package

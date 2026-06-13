@@ -1,3 +1,42 @@
+# apsimR 0.2.0.9000 (development)
+
+A stabilisation pass on the 0.1.0 core: the simulator-backed edit round-trip is
+fixed, the reference documentation is organised for a published site, and the
+expensive live oracles are run end-to-end against the installed APSIM.
+
+## Bug fixes
+
+* `apsim_edit()` now completes the edit round-trip on a real install instead of
+  abstaining. APSIM 2026.5's `--apply` `SaveCommand` resolves an *absolute* save
+  target through the process temporary path (`Path.GetTempPath()`); under a
+  sandboxed R session that path is the per-process confined temporary root, which
+  R cannot write to, so the save failed with an `UnauthorizedAccessException`
+  (the identical command from a bare shell succeeds -- the failure is specific to
+  the R process's temporary-directory confinement, not a config-format change).
+  The edit is now run with a *relative* save filename resolved against a writable
+  scratch directory, then moved to the requested `path`; the source file is still
+  never touched. Grounded against APSIM Next Generation 2026.5.8046.0. The live
+  edit test asserts success (no tolerated abstention) and that the working
+  directory is restored.
+
+## Documentation
+
+* Adds a `pkgdown` configuration (`_pkgdown.yml`, Bootstrap 5) with the reference
+  index grouped by verb family -- simulation files, run/predict, calibrate/
+  estimate, sensitivity/emulate, validate, causal ground truth (OSSE), the
+  contract manifest, runtime/abstention, and external-fact grounding.
+  `pkgdown::check_pkgdown()` reports no problems and `pkgdown::build_site()` runs
+  clean.
+
+## Verification
+
+* The expensive live oracles (forward-model evaluation, Morris sensitivity,
+  Gaussian-process emulation with leave-one-out diagnostics, the OSSE
+  ground-truth dataset, and the yield-versus-nitrogen monotonicity sign check)
+  were run end-to-end against the installed APSIM Next Generation 2026.5.8046.0
+  via `APSIMR_LIVE_TESTS=true` and pass. These tests remain skip-gated so the
+  suite stays green without the simulator present.
+
 # apsimR 0.1.0
 
 First formal release. `apsimR` enrols APSIM Next Generation into the orchestra as a

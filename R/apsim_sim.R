@@ -140,20 +140,45 @@ apsim_edit <- function(x, edits, path = tempfile(fileext = ".apsimx")) {
   }
   # APSIM's `--apply` applies the config to the positional file but writes the
   # result only where an explicit `save` command directs, leaving the source
-  # untouched. So the config is the edits followed by `save <path>`.
+  # untouched. So the config is the edits followed by a `save` command.
+  #
+  # APSIM 2026.5's `SaveCommand` resolves an *absolute* save target through the
+  # process temp path (`Path.GetTempPath()`), which a sandboxed R session cannot
+  # write to -- a bare-shell run of the identical command succeeds, an R-launched
+  # one fails with `UnauthorizedAccessException` on the temp root (grounded
+  # against the real install, see external_facts.R `save_path_resolution`). A
+  # *relative* save filename, resolved against the working directory, sidesteps
+  # this. So the source is copied into a writable scratch directory, the edit is
+  # run there with the working directory set to that directory and every path
+  # given relative to it, and the produced file is moved to `path`.
   rundir <- tempfile("apsimR_edit_")
   dir.create(rundir)
   on.exit(unlink(rundir, recursive = TRUE, force = TRUE), add = TRUE)
+  work <- file.path(rundir, basename(x@file))
+  if (!file.copy(x@file, work, overwrite = TRUE)) {
+    return(apsim_abstention("run_failed",
+                            "could not stage the source file for editing"))
+  }
   cfg <- file.path(rundir, "edit.txt")
+  saved <- "apsimR_edited.apsimx"
   writeLines(c(sprintf("%s = %s", names(edits), unname(edits)),
-               sprintf("save %s", path)), cfg)
-  args <- c(shQuote(rt$models), "--apply", shQuote(cfg), shQuote(x@file))
+               sprintf("save %s", saved)), cfg)
+  old_wd <- setwd(rundir)
+  on.exit(setwd(old_wd), add = TRUE)
+  args <- c(shQuote(rt$models), "--apply", shQuote(basename(cfg)),
+            shQuote(basename(work)))
   out <- tryCatch(.apsim_system(rt, args, tmpdir = rundir),
                   error = function(e) NULL)
+  setwd(old_wd)
   status <- attr(out, "status")
-  if ((!is.null(status) && status != 0L) || !file.exists(path)) {
+  produced <- file.path(rundir, saved)
+  if ((!is.null(status) && status != 0L) || !file.exists(produced)) {
     return(apsim_abstention("run_failed",
                             paste(utils::tail(out, 3L), collapse = " | ")))
+  }
+  if (!file.copy(produced, path, overwrite = TRUE)) {
+    return(apsim_abstention("run_failed",
+                            "edited file could not be written to `path`"))
   }
   apsim_sim(path)
 }
