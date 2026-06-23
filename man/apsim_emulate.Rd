@@ -37,7 +37,8 @@ yields several; defaults to the first.}
 \item{design}{Character design method passed to \code{\link[=apsim_design]{apsim_design()}}: \code{"lhs"}
 (default), \code{"grid"} or \code{"random"}.}
 
-\item{backend}{Character: \code{"exact"} (default, dependency-free) or \code{"pesto"}.}
+\item{backend}{Character: \code{"exact"} (default, dependency-free; a
+marginal-likelihood-fitted ARD exact GP) or \code{"pesto"}.}
 
 \item{report}{Character report-table name, or \code{NULL} for the first report.}
 

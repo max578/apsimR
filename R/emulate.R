@@ -4,9 +4,11 @@
 # thousands. An emulator breaks that wall: run the simulator at a space-filling
 # design once, fit a Gaussian-process surrogate to the (parameters -> output) map,
 # then predict anywhere in microseconds with a calibrated uncertainty. apsimR
-# ships a real, dependency-free exact GP (squared-exponential kernel, median-
-# heuristic length-scale, Cholesky solve, standardised in/out) as the default
-# backend, and composes PESTO's GP / random-feature surrogates when present. Every
+# ships a real, dependency-free exact GP (squared-exponential ARD kernel whose
+# per-dimension length-scales, signal variance and noise variance are fitted by
+# maximising the exact log marginal likelihood, Cholesky solve, standardised
+# in/out) as the default backend, and composes PESTO's GP / random-feature
+# surrogates when present. Every
 # emulator is returned with mandatory leave-one-out diagnostics -- an emulator
 # whose own honesty is unmeasured is worse than none.
 
@@ -14,18 +16,29 @@
 
 #' Train an exact squared-exponential Gaussian process
 #'
-#' Standardises inputs and output, sets the length-scale by the median pairwise
-#' distance (the standard heuristic), and solves the GP via a Cholesky factor.
+#' Standardises inputs and output, then fits a genuine exact GP: the
+#' per-dimension (ARD) length-scales, the signal variance and the noise variance
+#' are estimated by maximising the exact log marginal likelihood (the median
+#' pairwise distance only seeds the optimiser), and the GP is solved via a
+#' Cholesky factor. Fitting the hyperparameters -- rather than fixing one
+#' isotropic length-scale -- is what lets the surrogate match a reference exact GP
+#' on anisotropic targets and interpolate the training design.
 #'
 #' @param X Numeric `n x p` design matrix.
 #' @param y Numeric length-`n` response.
-#' @param nugget Numeric jitter added to the kernel diagonal for conditioning.
-#' @returns A list capturing the fitted GP.
+#' @param nugget Numeric jitter added to the kernel diagonal for conditioning, on
+#'   top of the fitted noise variance.
+#' @param restarts Integer number of extra optimiser restarts (from shorter /
+#'   longer length-scales) guarding against a marginal-likelihood local optimum.
+#' @returns A list capturing the fitted GP (ARD length-scales `ell`, signal
+#'   variance `sf2`, noise variance `sn2`, Cholesky factor and weights).
 #' @noRd
 #' @keywords internal
-.apsim_gp_train <- function(X, y, nugget = 1e-6) {
+.apsim_gp_train <- function(X, y, nugget = 1e-8, restarts = 1L) {
   X <- as.matrix(X)
   y <- as.numeric(y)
+  n <- nrow(X)
+  p <- ncol(X)
   centre <- colMeans(X)
   spread <- apply(X, 2L, stats::sd)
   spread[spread == 0 | !is.finite(spread)] <- 1
@@ -36,16 +49,69 @@
     y_sd <- 1
   }
   ys <- (y - y_mu) / y_sd
-  d <- as.matrix(stats::dist(xs))
-  ell <- stats::median(d[upper.tri(d)])
-  if (!is.finite(ell) || ell <= 0) {
-    ell <- 1
+
+  # per-dimension squared-distance matrices (the ARD kernel ingredients)
+  sq_dist <- lapply(seq_len(p), function(j) outer(xs[, j], xs[, j], `-`)^2)
+
+  ell0 <- vapply(seq_len(p), function(j) {
+    dj <- sqrt(sq_dist[[j]][upper.tri(sq_dist[[j]])])
+    m <- stats::median(dj[dj > 0])
+    if (!is.finite(m) || m <= 0) 1 else m
+  }, numeric(1L))
+
+  .build_k <- function(ell, sf2, sn2) {
+    quad <- matrix(0, n, n)
+    for (j in seq_len(p)) {
+      quad <- quad + sq_dist[[j]] / ell[j]^2
+    }
+    sf2 * exp(-0.5 * quad) + diag(sn2 + nugget, n)
   }
-  k <- exp(-0.5 * (d / ell)^2) + diag(nugget, nrow(xs))
-  chol_k <- chol(k)
+
+  # negative log marginal likelihood; par = (log ell_1..p, log sf2, log sn2)
+  nlml <- function(par) {
+    ell <- exp(par[seq_len(p)])
+    sf2 <- exp(par[p + 1L])
+    sn2 <- exp(par[p + 2L])
+    ch <- tryCatch(chol(.build_k(ell, sf2, sn2)), error = function(e) NULL)
+    if (is.null(ch)) {
+      return(1e10)
+    }
+    a <- backsolve(ch, backsolve(ch, ys, transpose = TRUE))
+    0.5 * sum(ys * a) + sum(log(diag(ch))) + 0.5 * n * log(2 * pi)
+  }
+
+  lower <- c(rep(log(1e-2), p), log(1e-4), log(1e-8))
+  upper <- c(rep(log(1e2), p), log(1e4), log(1e1))
+  starts <- list(c(log(ell0), 0, log(1e-3)))
+  if (restarts >= 1L) {
+    starts <- c(starts, list(c(log(ell0 * 0.3), 0, log(1e-4))))
+  }
+  if (restarts >= 2L) {
+    starts <- c(starts, list(c(log(ell0 * 3), 0, log(1e-2))))
+  }
+
+  best_par <- pmin(pmax(starts[[1L]], lower), upper)
+  best_val <- Inf
+  for (s in starts) {
+    s <- pmin(pmax(s, lower), upper)
+    opt <- tryCatch(
+      stats::optim(s, nlml, method = "L-BFGS-B", lower = lower, upper = upper,
+                   control = list(maxit = 100L)),
+      error = function(e) NULL)
+    if (!is.null(opt) && is.finite(opt$value) && opt$value < best_val) {
+      best_val <- opt$value
+      best_par <- opt$par
+    }
+  }
+
+  ell <- exp(best_par[seq_len(p)])
+  sf2 <- exp(best_par[p + 1L])
+  sn2 <- exp(best_par[p + 2L])
+  chol_k <- chol(.build_k(ell, sf2, sn2))
   alpha <- backsolve(chol_k, backsolve(chol_k, ys, transpose = TRUE))
   list(xs = xs, centre = centre, spread = spread, y_mu = y_mu, y_sd = y_sd,
-       ell = ell, chol = chol_k, alpha = alpha, nugget = nugget)
+       ell = ell, sf2 = sf2, sn2 = sn2, nugget = nugget,
+       chol = chol_k, alpha = alpha)
 }
 
 #' Predict from an exact GP at new inputs
@@ -57,13 +123,15 @@
 #' @keywords internal
 .apsim_gp_predict <- function(gp, x_new) {
   xn <- sweep(sweep(as.matrix(x_new), 2L, gp$centre, `-`), 2L, gp$spread, `/`)
-  sq_a <- rowSums(xn^2)
-  sq_b <- rowSums(gp$xs^2)
-  d2 <- outer(sq_a, sq_b, `+`) - 2 * xn %*% t(gp$xs)
-  k_star <- exp(-0.5 * pmax(d2, 0) / gp$ell^2)
+  p <- ncol(gp$xs)
+  quad <- matrix(0, nrow(xn), nrow(gp$xs))
+  for (j in seq_len(p)) {
+    quad <- quad + outer(xn[, j], gp$xs[, j], `-`)^2 / gp$ell[j]^2
+  }
+  k_star <- gp$sf2 * exp(-0.5 * quad)
   mean_s <- as.numeric(k_star %*% gp$alpha)
   v <- backsolve(gp$chol, t(k_star), transpose = TRUE)
-  var_s <- pmax(1 - colSums(v^2), 0) + gp$nugget
+  var_s <- pmax(gp$sf2 - colSums(v^2), 0) + gp$sn2
   list(mean = mean_s * gp$y_sd + gp$y_mu, sd = sqrt(var_s) * gp$y_sd)
 }
 
@@ -169,7 +237,8 @@ apsim_emulator <- S7::new_class(
 #' @param n Integer number of design (training) points.
 #' @param design Character design method passed to [apsim_design()]: `"lhs"`
 #'   (default), `"grid"` or `"random"`.
-#' @param backend Character: `"exact"` (default, dependency-free) or `"pesto"`.
+#' @param backend Character: `"exact"` (default, dependency-free; a
+#'   marginal-likelihood-fitted ARD exact GP) or `"pesto"`.
 #' @param report Character report-table name, or `NULL` for the first report.
 #' @param seed Optional integer RNG seed (design reproducibility).
 #'

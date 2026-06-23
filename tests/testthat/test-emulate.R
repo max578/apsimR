@@ -18,6 +18,24 @@ test_that("the exact GP interpolates the training data and predicts the truth", 
   expect_true(all(pred$sd >= 0))
 })
 
+test_that("the exact GP fits ARD hyperparameters, not a fixed length-scale", {
+  # Anisotropic target: input 1 drives the response, input 2 is near-inert. A
+  # genuine ML-fitted ARD GP must give the active input a SHORTER length-scale
+  # than the inert one (the fixed-median-heuristic predecessor could not, which
+  # is what made its "exact" label false on anisotropic functions like Branin).
+  set.seed(20260623)
+  x <- cbind(stats::runif(40L, 0, 3), stats::runif(40L, 0, 3))
+  y <- sin(3 * x[, 1L]) + 0.02 * x[, 2L]
+  gp <- apsimR:::.apsim_gp_train(x, y)
+  expect_length(gp$ell, 2L)
+  expect_lt(gp$ell[[1L]], gp$ell[[2L]])           # active dim earns a tighter scale
+  at_train <- apsimR:::.apsim_gp_predict(gp, x)
+  expect_equal(at_train$mean, y, tolerance = 1e-2)  # near-interpolation
+  loo <- apsimR:::.apsim_emulator_loo(
+    apsimR:::.apsim_emulator_backend("exact"), x, y)
+  expect_gt(loo$r2, 0.9)                            # honest out-of-sample skill
+})
+
 test_that("leave-one-out diagnostics are honest on a smooth function", {
   X <- matrix(seq(0, 10, length.out = 20L), ncol = 1L)
   y <- smooth_truth(X)

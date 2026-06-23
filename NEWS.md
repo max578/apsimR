@@ -1,3 +1,30 @@
+# apsimR 0.3.0
+
+The `"exact"` emulator backend is now a genuine exact Gaussian process. It
+previously fixed a single isotropic length-scale by the median-distance heuristic
+with unit signal variance and never fitted its hyperparameters -- exact-inference,
+but never *fitted*, so on an anisotropic target it neither interpolated the design
+nor competed with a reference exact GP (an independent benchmark on the Branin
+function found it ~334x less accurate out-of-sample and not interpolating). The
+`"exact"` label is now true to its name.
+
+## Behaviour change
+
+* `apsim_emulate(backend = "exact")` (and the internal `.apsim_gp_train()`) now fit
+  per-dimension **ARD length-scales**, the **signal variance** and the **noise
+  variance** by maximising the exact log marginal likelihood (the median heuristic
+  only seeds the optimiser, with restarts against a local optimum). Predictions
+  from the default backend therefore change -- and improve: on the Branin benchmark
+  the surrogate's held-out RMSE now matches a marginal-likelihood-fitted
+  `DiceKriging` exact GP (ratio ~0.85x, i.e. on par) and it interpolates the
+  training design to ~1e-3 of the output range. The public API is unchanged.
+
+## Bug fixes
+
+* The squared-exponential predictive variance now uses the fitted signal variance
+  (it was implicitly fixed at one in standardised space), so the reported
+  uncertainty scales correctly with the data.
+
 # apsimR 0.2.0
 
 A stabilisation pass on the 0.1.0 core: the simulator-backed edit round-trip is
