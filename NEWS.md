@@ -1,5 +1,35 @@
 # apsimR (development version)
 
+* apsimR now emits the orchestra's general result contract natively:
+  `as_orchestra_manifest()` lifts any `apsim_manifest` into an
+  `orchestra_manifest` at schema `2.0.0-draft`, with `verify_manifest()` for
+  payload integrity and `manifest_summary()` for a typed verdict. The class
+  carries the federation's bare class identity and the reference integrity-hash
+  recipe, so a consumer (decideR, conductoR, optimix) reads an apsimR result
+  with no special casing; a sensitivity table maps onto the contract's
+  `parameters` target and an emulator or validation onto `predictions`, with the
+  original apsimR target preserved in `metadata$apsim_target` and a validation
+  verdict lifted into the typed `summary`.
+* `as_pesto_manifest()` now produces a `pesto_ensemble_manifest` that PESTO
+  itself verifies. The bridge previously abstained on every payload apsimR
+  emits: it passed apsimR's method vocabulary and apsimR's own payload hash
+  straight into PESTO's ensemble contract, which accepts neither. It now
+  translates the method onto PESTO's enum, assembles the row-aligned parameter
+  and simulated-observation ensemble the contract requires, and re-hashes with
+  PESTO's own payload recipe. Results that are not ensemble inversions -- a
+  prediction, a screening table, an emulator, a validation -- now abstain with a
+  reason that names the requirement and points at `as_orchestra_manifest()`,
+  instead of returning an opaque validator error.
+* `apsim_calibrate(backend = "ies")` keeps the simulated-observation ensemble
+  and the assimilation context (observation targets and weights) in the result's
+  metadata instead of summarising them away; both backends now record the
+  assimilation context under the same names.
+* The `as_pesto_manifest()` test suite gained a positive path. The only bridge
+  test skipped whenever `PESTO` was installed, so the success path had no
+  coverage at all; the new tests run with `PESTO` present and assert against
+  PESTO's own validator and hash verifier, and the contract tests assert against
+  an independently authored sibling implementation of the same contract.
+
 * Added a GitHub Actions R-CMD-check workflow (macOS/Windows/Ubuntu across
   release/devel/oldrel-1) so releases are verified on an independent runner
   rather than only on this machine; the private `PESTO` test oracle is

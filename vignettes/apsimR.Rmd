@@ -290,10 +290,30 @@ members.
 ## Composing with the orchestra
 
 Every result-returning verb produces an `apsim_manifest`, a versioned,
-provenance-complete object of its own. A bridge to `PESTO`'s ensemble-manifest
-contract, `as_pesto_manifest()`, exists for when `PESTO` is installed, but it is
-not yet a working seam: `apsim_manifest` currently writes `method` values (for
-example `"apsim:predict"`) that `PESTO`'s validator does not recognise, so the
-bridge abstains rather than converts. Until that is closed, treat `apsim_manifest`
-objects as apsimR's own typed result, not as something that already flows
-directly into the calibration, uncertainty and causal stack.
+provenance-complete object of its own. Two adapters carry it into the wider
+orchestra.
+
+`as_orchestra_manifest()` emits the federation's general result contract at
+schema `2.0.0-draft`, and is the route for any apsimR result. A prediction stays
+a prediction, a sensitivity table becomes a statement about parameters, and an
+emulator or a validation becomes a statement about predictions -- with the
+original apsimR target preserved in the manifest's metadata and a validation
+verdict lifted into the contract's typed `summary` slot. `verify_manifest()`
+recomputes the payload hash, so a consumer detects a manifest whose payload was
+modified after emission.
+
+```{r orchestra-manifest}
+om <- as_orchestra_manifest(v)
+om
+verify_manifest(om)$ok
+om@summary$headline
+```
+
+`as_pesto_manifest()` bridges into `PESTO`'s narrower ensemble contract, which
+carries a parameter ensemble alongside the row-aligned simulated observations
+that ensemble produced. Exactly one apsimR result is an object of that kind --
+the posterior ensemble from `apsim_calibrate(backend = "ies")`, which `PESTO`'s
+own ensemble smoother produced. Every other result abstains with a typed reason
+naming the requirement it does not meet and pointing back at
+`as_orchestra_manifest()`, rather than being forced into slots for which it has
+no honest values.

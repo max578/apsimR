@@ -11,10 +11,14 @@
   (`apsim_forward_model()`), calibrate / sensitivity / emulate / validate, and the
   **OSSE causal test-bench** (`apsim_ground_truth()` — known-ATE synthetic data for
   scoring TACI/kernR causal estimators). APSIM is real, never stubbed.
-- **Contracts I own / honour:** I **emit `apsim_manifest`** (a
-  `pesto_ensemble_manifest`-compatible S7, bridged via `as_pesto_manifest()` →
-  PESTO's **C2** contract). The exact-GP emulator emits a `"parameters"`-shaped
-  result. I consume no manifest.
+- **Contracts I own / honour:** I **emit `orchestra_manifest`** at
+  `2.0.0-draft` natively (`as_orchestra_manifest()`, bare class identity + the
+  reference integrity hash, so any consumer reads me without special casing);
+  every verb's own typed result is an `apsim_manifest`, which that adapter lifts.
+  `as_pesto_manifest()` bridges into PESTO's narrower **C2** *ensemble* contract,
+  and only an ensemble inversion (`apsim_calibrate(backend="ies")`) is
+  expressible there -- anything else abstains with a typed reason rather than
+  inventing ensemble slots. I consume no manifest.
 - **My edge:** producer — apsimR is a process-based forward model upstream of
   **PESTO** (inversion: `apsim_calibrate(backend="ies")` delegates to PESTO) and
   **kernR/TACI** (the OSSE benchmark the causal tests are scored against). Acyclic:
