@@ -10,19 +10,40 @@ as_pesto_manifest(x)
 \item{x}{An \code{apsim_manifest} object.}
 }
 \value{
-A \code{PESTO::pesto_ensemble_manifest}, or an \code{apsim_abstention}.
+A \code{PESTO::pesto_ensemble_manifest}, or an \code{apsim_abstention} with
+reason \code{"runtime_unavailable"} (PESTO absent) or \code{"feature_unsupported"}
+(the payload is not an ensemble inversion).
 }
 \description{
 Converts to PESTO's \code{pesto_ensemble_manifest} S7 object (the orchestra's C2
-contract) so an APSIM result can be consumed by the PESTO/kernR/flexyBayes
-stack. Requires the optional \code{PESTO} package; returns an \code{\link[=apsim_abstention]{apsim_abstention()}}
-when it is absent, and a \code{feature_unsupported} abstention if the payload cannot
-be expressed in the ensemble contract.
+contract) so an APSIM inversion result can be consumed by the
+PESTO / kernR / flexyBayes stack.
+}
+\details{
+PESTO's contract is an \emph{ensemble} contract, and the bridge respects that
+rather than forcing every payload through it. It requires two things, both
+read from the installed PESTO (0.10.1 at the time of writing) rather than
+assumed: a method tag drawn from PESTO's own enum, and a parameter ensemble
+whose rows align one-for-one with a simulated-observation ensemble. Exactly
+one apsimR result satisfies that -- the posterior ensemble from
+\code{\link[=apsim_calibrate]{apsim_calibrate()}}'s \code{ies} backend, which PESTO's own ensemble smoother
+produced. Every other apsimR result (a prediction, a screening table, an
+emulator, a validation verdict) is not an ensemble inversion, so the bridge
+returns a \code{feature_unsupported} \code{\link[=apsim_abstention]{apsim_abstention()}} naming the reason
+instead of a manifest whose slots would have to be invented. Those results
+compose through \code{\link[optimix:as_orchestra_manifest]{optimix::as_orchestra_manifest()}}, the federation's general contract.
+
+The bridged manifest is re-hashed with PESTO's own payload recipe, so
+\code{PESTO::verify_manifest()} verifies it; apsimR's own hash is kept in the
+bridge's provenance chain through the source manifest.
 }
 \examples{
 \dontshow{if (requireNamespace("PESTO", quietly = TRUE)) withAutoprint(\{ # examplesIf}
-m <- apsim_manifest("parameters", "apsim:estimate",
-                    params = data.frame(ymax = 4.2, rate = 0.018, y0 = 1.1))
-as_pesto_manifest(m)
+# A prediction is not an ensemble inversion, so the bridge declines.
+as_pesto_manifest(apsim_manifest("predictions", "apsim:predict",
+                                 outputs = data.frame(Yield = 3.8)))
 \dontshow{\}) # examplesIf}
+}
+\seealso{
+\code{\link[optimix:as_orchestra_manifest]{optimix::as_orchestra_manifest()}} for the general orchestra contract.
 }

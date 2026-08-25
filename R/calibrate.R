@@ -189,7 +189,8 @@ apsim_calibrate <- function(sim, parm_paths, lower, upper, observed, output,
                          predicted = unname(pred_at), row.names = NULL),
     metadata = list(backend = "optim", objective = op$value,
                     convergence = op$convergence, message = op$message,
-                    obs_sd = obs_sd, weights = w),
+                    obs_sd = obs_sd, weights = w,
+                    obs_target = observed, obs_weights = w),
     seed = if (is.null(seed)) NA_integer_ else as.integer(seed))
 }
 
@@ -243,10 +244,16 @@ apsim_calibrate <- function(sim, parm_paths, lower, upper, observed, output,
     outputs = data.frame(target = names(observed), observed = observed,
                          predicted = unname(pred_mean),
                          row.names = NULL),
+    # The simulated-observation ensemble and the assimilation context are kept
+    # alongside the posterior, not summarised away: they are the payload PESTO's
+    # ensemble contract needs, so discarding them here is what left
+    # `as_pesto_manifest()` with nothing to bridge (audit F1).
     metadata = list(backend = "ies", n_real = nrow(post), noptmax = noptmax,
                     inflation = inflation, phi_final = phi_final,
                     n_forward_evals = res$n_forward_evals,
                     failure_rate = res$failure_rate,
-                    posterior_mean = post_mean, obs_sd = obs_sd),
+                    posterior_mean = post_mean, obs_sd = obs_sd,
+                    obs_ensemble = obs_ens, obs_target = res$obs_target,
+                    obs_weights = res$weights),
     seed = if (is.null(seed)) NA_integer_ else as.integer(seed))
 }
