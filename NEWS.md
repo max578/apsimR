@@ -1,3 +1,11 @@
+# apsimR (development version)
+
+* Added a GitHub Actions R-CMD-check workflow (macOS/Windows/Ubuntu across
+  release/devel/oldrel-1) so releases are verified on an independent runner
+  rather than only on this machine; the private `PESTO` test oracle is
+  dropped from `Suggests` before dependency resolution on the runner, and
+  its guarded tests skip there as designed.
+
 # apsimR 0.3.0
 
 The `"exact"` emulator backend is now a genuine exact Gaussian process. It
