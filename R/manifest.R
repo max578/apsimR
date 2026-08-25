@@ -2,10 +2,10 @@
 #
 # Every apsimR verb returns an `apsim_manifest`: a typed, provenance-complete
 # result shaped like the orchestra's ensemble-manifest contract (params + outputs
-# + an integrity hash + the APSIM version that produced it). It is deliberately
-# `pesto_ensemble_manifest`-compatible so simulator output composes with the
-# downstream calibration / UQ / causal stack; `as_pesto_manifest()` bridges to
-# PESTO's S7 contract when that package is installed.
+# + an integrity hash + the APSIM version that produced it). Two adapters carry
+# it into the federation: `as_orchestra_manifest()` emits the orchestra's general
+# contract natively (see R/orchestra_manifest.R), and `as_pesto_manifest()`
+# bridges an ensemble inversion into PESTO's narrower C2 ensemble contract.
 
 # --- manifest object ---------------------------------------------------------
 
@@ -75,18 +75,38 @@ apsim_manifest <- S7::new_class(
 #' Bridge an `apsim_manifest` to a PESTO ensemble manifest
 #'
 #' Converts to PESTO's `pesto_ensemble_manifest` S7 object (the orchestra's C2
-#' contract) so an APSIM result can be consumed by the PESTO/kernR/flexyBayes
-#' stack. Requires the optional `PESTO` package; returns an [apsim_abstention()]
-#' when it is absent, and a `feature_unsupported` abstention if the payload cannot
-#' be expressed in the ensemble contract.
+#' contract) so an APSIM inversion result can be consumed by the
+#' PESTO / kernR / flexyBayes stack.
+#'
+#' PESTO's contract is an *ensemble* contract, and the bridge respects that
+#' rather than forcing every payload through it. It requires two things, both
+#' read from the installed PESTO (0.10.1 at the time of writing) rather than
+#' assumed: a method tag drawn from PESTO's own enum, and a parameter ensemble
+#' whose rows align one-for-one with a simulated-observation ensemble. Exactly
+#' one apsimR result satisfies that -- the posterior ensemble from
+#' [apsim_calibrate()]'s `ies` backend, which PESTO's own ensemble smoother
+#' produced. Every other apsimR result (a prediction, a screening table, an
+#' emulator, a validation verdict) is not an ensemble inversion, so the bridge
+#' returns a `feature_unsupported` [apsim_abstention()] naming the reason
+#' instead of a manifest whose slots would have to be invented. Those results
+#' compose through [as_orchestra_manifest()], the federation's general contract.
+#'
+#' The bridged manifest is re-hashed with PESTO's own payload recipe, so
+#' `PESTO::verify_manifest()` verifies it; apsimR's own hash is kept in the
+#' bridge's provenance chain through the source manifest.
 #'
 #' @param x An `apsim_manifest` object.
-#' @returns A `PESTO::pesto_ensemble_manifest`, or an `apsim_abstention`.
+#'
+#' @returns A `PESTO::pesto_ensemble_manifest`, or an `apsim_abstention` with
+#'   reason `"runtime_unavailable"` (PESTO absent) or `"feature_unsupported"`
+#'   (the payload is not an ensemble inversion).
+#'
+#' @seealso [as_orchestra_manifest()] for the general orchestra contract.
 #'
 #' @examplesIf requireNamespace("PESTO", quietly = TRUE)
-#' m <- apsim_manifest("parameters", "apsim:estimate",
-#'                     params = data.frame(ymax = 4.2, rate = 0.018, y0 = 1.1))
-#' as_pesto_manifest(m)
+#' # A prediction is not an ensemble inversion, so the bridge declines.
+#' as_pesto_manifest(apsim_manifest("predictions", "apsim:predict",
+#'                                  outputs = data.frame(Yield = 3.8)))
 #'
 #' @export
 as_pesto_manifest <- function(x) {
@@ -97,24 +117,133 @@ as_pesto_manifest <- function(x) {
     return(apsim_abstention("runtime_unavailable",
                             "PESTO is not installed", scope = "as_pesto_manifest"))
   }
-  params <- if (nrow(x@params)) x@params else data.frame(.apsim = NA_real_)
+  method <- .apsim_pesto_method(x@method)
+  if (is.na(method)) {
+    return(apsim_abstention(
+      "feature_unsupported",
+      sprintf(paste0("method '%s' is not an ensemble inversion, so it has no ",
+                     "counterpart in PESTO's method enum (%s); use ",
+                     "as_orchestra_manifest() for the general contract"),
+              x@method, paste(.PESTO_METHODS, collapse = ", ")),
+      scope = "as_pesto_manifest"))
+  }
+  ens <- .apsim_pesto_ensemble(x)
+  if (is.null(ens)) {
+    return(apsim_abstention(
+      "feature_unsupported",
+      paste0("PESTO's ensemble contract needs a row-aligned parameter / ",
+             "simulated-observation ensemble; this manifest carries none ",
+             "(use as_orchestra_manifest() for the general contract)"),
+      scope = "as_pesto_manifest"))
+  }
   out <- tryCatch(
     PESTO::pesto_ensemble_manifest(
-      run_id = paste0("apsim-", substr(sub("^sha256:", "", x@data_hash), 1L, 12L)),
-      params = params,
-      outputs = if (is.null(x@outputs)) data.frame() else as.data.frame(x@outputs),
-      weights = numeric(0), obs_target = numeric(0),
-      seed = x@seed, data_hash = x@data_hash,
+      run_id = paste0("apsim-", substr(sub("^sha256:", "", x@data_hash),
+                                       1L, 12L)),
+      params = ens$params,
+      outputs = ens$outputs,
+      weights = ens$weights, obs_target = ens$obs_target,
+      seed = x@seed,
+      data_hash = .apsim_pesto_data_hash(ens, x@seed),
       apsim_version = x@apsim_version,
       pesto_version = as.character(utils::packageVersion("PESTO")),
-      timestamp = x@timestamp, method = x@method,
-      noptmax = 0L, lambda_schedule = numeric(0), failure_rate = 0),
+      timestamp = x@timestamp, method = method,
+      noptmax = as.integer(x@metadata$noptmax %||% 0L),
+      lambda_schedule = as.numeric(x@metadata$lambda_schedule %||% numeric(0)),
+      failure_rate = as.numeric(x@metadata$failure_rate %||% 0)),
     error = function(e) e)
   if (inherits(out, "error")) {
     return(apsim_abstention("feature_unsupported", conditionMessage(out),
                             scope = "as_pesto_manifest"))
   }
   out
+}
+
+# --- bridge internals --------------------------------------------------------
+
+# PESTO 0.10.1's `pesto_ensemble_manifest` validator accepts exactly these five
+# method tags (read from the installed validator, not from memory). apsimR's own
+# method vocabulary is namespaced ("apsim:calibrate:ies"), so the bridge must
+# translate; a tag with no honest counterpart maps to NA and the bridge declines
+# rather than mislabelling the algorithm that produced the ensemble.
+.PESTO_METHODS <- c("ies_callback", "ies_filter", "ies_pst", "mda", "surrogate")
+
+# The one grounded mapping: apsimR's `ies` calibration backend calls
+# `PESTO::pesto_ies_callback()` directly (R/calibrate.R), so its result IS a
+# PESTO ies_callback ensemble.
+.APSIM_TO_PESTO_METHOD <- c("apsim:calibrate:ies" = "ies_callback")
+
+#' Translate an apsimR method tag into PESTO's method enum
+#'
+#' @param method An apsimR method tag.
+#'
+#' @returns A single PESTO method token, or `NA_character_` when the tag has no
+#'   honest counterpart.
+#' @noRd
+#' @keywords internal
+.apsim_pesto_method <- function(method) {
+  unname(.APSIM_TO_PESTO_METHOD[as.character(method)[[1L]]])
+}
+
+#' The row-aligned ensemble a PESTO manifest needs, or NULL
+#'
+#' PESTO's validator requires `nrow(params) == nrow(outputs)`. An `ies`
+#' calibration manifest carries the posterior parameter ensemble in `params` and
+#' the matching simulated-observation ensemble in `metadata$obs_ensemble`; its
+#' `outputs` slot holds an observed-versus-predicted summary of a different
+#' shape, so the ensemble is assembled here rather than read off `outputs`.
+#'
+#' @param x An `apsim_manifest`.
+#'
+#' @returns A list with `params`, `outputs`, `weights` and `obs_target`, or
+#'   `NULL` when the manifest carries no ensemble.
+#' @noRd
+#' @keywords internal
+.apsim_pesto_ensemble <- function(x) {
+  params <- as.data.frame(x@params)
+  obs_ens <- x@metadata$obs_ensemble
+  outputs <- if (!is.null(obs_ens)) as.data.frame(obs_ens) else NULL
+  if (is.null(outputs) || !nrow(params) || nrow(params) != nrow(outputs)) {
+    return(NULL)
+  }
+  num <- function(v) {
+    if (is.null(v) || !length(v)) numeric(0)
+    else stats::setNames(as.numeric(v), names(v))
+  }
+  list(params = params, outputs = outputs,
+       weights = num(x@metadata$obs_weights),
+       obs_target = num(x@metadata$obs_target))
+}
+
+#' The payload hash PESTO's own verifier recomputes
+#'
+#' PESTO hashes the ensemble payload with its own recipe -- a `digest::digest()`
+#' over the numeric matrices of `params` and `outputs` (dropping the optional
+#' `real_name` label column), the weights, the targets and the seed. apsimR's
+#' `apsim_manifest` hash is a different recipe over different slots, so passing
+#' it through would produce a manifest that PESTO reports as tampered. The recipe
+#' is reproduced here and grounded in `tests/testthat/test-manifest.R` against
+#' `PESTO::verify_manifest()`: if PESTO ever changes it, that test fails loudly
+#' rather than the bridge drifting silently.
+#'
+#' @param ens The ensemble list from `.apsim_pesto_ensemble()`.
+#' @param seed The manifest seed.
+#'
+#' @returns A single `"sha256:"`-prefixed hex string.
+#' @noRd
+#' @keywords internal
+.apsim_pesto_data_hash <- function(ens, seed) {
+  drop_label <- function(d) {
+    d <- as.data.frame(d)
+    as.matrix(d[, setdiff(names(d), "real_name"), drop = FALSE])
+  }
+  paste0("sha256:",
+         digest::digest(list(params = drop_label(ens$params),
+                             outputs = drop_label(ens$outputs),
+                             weights = as.numeric(ens$weights),
+                             obs_target = as.numeric(ens$obs_target),
+                             seed = as.integer(seed)),
+                        algo = "sha256", serialize = TRUE))
 }
 
 S7::method(print, apsim_manifest) <- function(x, ...) {

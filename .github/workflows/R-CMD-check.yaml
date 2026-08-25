@@ -34,12 +34,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # PESTO is a private sibling package used only as an optional test
-      # oracle (every use sits behind skip_if(_not)_installed). It is not on
-      # CRAN and this runner has no access to it, so it is dropped from
-      # Suggests before dependency resolution; the affected tests skip.
-      - name: Drop the private PESTO test oracle from Suggests
-        run: perl -0pi -e 's/^[ \t]*PESTO \(>= 0\.6\.0\),\r?\n//m' DESCRIPTION
+      # PESTO and optimix are private sibling packages used only as optional
+      # test oracles (every use sits behind skip_if(_not)_installed). Neither
+      # is on CRAN and this runner has no access to them, so they are dropped
+      # from Suggests before dependency resolution; the affected tests skip.
+      - name: Drop the private sibling test oracles from Suggests
+        run: |
+          perl -0pi -e 's/^[ \t]*PESTO \(>= 0\.6\.0\),\r?\n//m' DESCRIPTION
+          perl -0pi -e 's/^[ \t]*optimix \(>= 0\.1\.0\),\r?\n//m' DESCRIPTION
         shell: bash
 
       - uses: r-lib/actions/setup-pandoc@v2
@@ -54,6 +56,9 @@ jobs:
         with:
           extra-packages: any::rcmdcheck
           needs: check
+          # non-CRAN siblings (proxymix, PESTO, kernR, masque) resolve from the
+          # orchestra's r-universe; private members cannot be fetched by CI
+          extra-repositories: 'https://max578.r-universe.dev'
 
       - uses: r-lib/actions/check-r-package@v2
         with:
