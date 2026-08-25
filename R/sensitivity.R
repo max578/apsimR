@@ -17,7 +17,7 @@
 #'
 #' Quantifies how the `parm_paths` parameters drive a single scalar APSIM output
 #' over the box `[lower, upper]`. Morris screening (default) ranks the factors by
-#' mean absolute elementary effect (`mu.star`) and flags interaction / non-linearity
+#' mean absolute elementary effect (`mu_star`) and flags interaction / non-linearity
 #' (`sigma`) cheaply; the Sobol-Jansen method decomposes the output variance into
 #' first-order (`S`) and total (`T`) indices at a higher run cost. The two stages
 #' use the `sensitivity` package over the same forward model as the other verbs.

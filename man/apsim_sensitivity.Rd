@@ -56,7 +56,7 @@ An \code{apsim_manifest} with \code{inferential_target = "sensitivity"} whose
 \description{
 Quantifies how the \code{parm_paths} parameters drive a single scalar APSIM output
 over the box \verb{[lower, upper]}. Morris screening (default) ranks the factors by
-mean absolute elementary effect (\code{mu.star}) and flags interaction / non-linearity
+mean absolute elementary effect (\code{mu_star}) and flags interaction / non-linearity
 (\code{sigma}) cheaply; the Sobol-Jansen method decomposes the output variance into
 first-order (\code{S}) and total (\code{T}) indices at a higher run cost. The two stages
 use the \code{sensitivity} package over the same forward model as the other verbs.

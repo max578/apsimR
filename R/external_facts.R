@@ -217,8 +217,20 @@ apsim_external_facts <- function() {
 
 #' Grounding status summary for apsimR's external facts
 #'
+#' Collapses [apsim_external_facts()] to one row per fact family, so a caller
+#' (or the `/rpkg` audit driver) can see at a glance which classes of APSIM
+#' fact are grounded by a replayed real run and which are still
+#' `"[unverified]"`.
+#'
 #' @return A `data.frame` with one row per `fact_family`: `n_facts`,
 #'   `n_grounded`, `n_unverified`.
+#'
+#' @examples
+#' status <- apsim_fact_status()
+#' status
+#' # families with at least one unverified fact
+#' status[status$n_unverified > 0, ]
+#'
 #' @export
 apsim_fact_status <- function() {
   dt <- apsim_external_facts()

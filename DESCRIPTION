@@ -14,9 +14,9 @@ Description: A typed, server-capable R interface to APSIM Next Generation, the
     diagnostics, validation against observations (goodness-of-fit metrics and a
     typed verdict), and the generation of known-causal-structure datasets for
     testing causal-inference methods, and returns results as a versioned,
-    provenance-complete object
-    compatible with the 'PESTO' ensemble-manifest contract, so simulator output
-    composes directly with downstream calibration, uncertainty-quantification and
+    provenance-complete 'apsim_manifest' object, with a bridge to 'PESTO'
+    ensemble manifests underway so simulator output will compose directly
+    with downstream calibration, uncertainty-quantification and
     causal-inference tools. Execution degrades gracefully: every entry point
     abstains with a typed reason when the simulator or its runtime is absent.
     The package's own sources are released under the MIT licence; when used with
