@@ -244,7 +244,9 @@ apsim_version <- function() {
                             "no Models executable found; see apsim_configure()"))
   }
   if (!file.exists(file)) {
-    stop("`file` does not exist: ", file, call. = FALSE)
+    stop(sprintf(
+      "`file` does not exist: %s; provide the path to an existing .apsimx file.",
+      file), call. = FALSE)
   }
   rundir <- tempfile("apsimR_run_")
   dir.create(rundir)

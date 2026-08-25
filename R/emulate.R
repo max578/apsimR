@@ -154,7 +154,9 @@
         list(mean = as.numeric(p$mean),
              sd = sqrt(pmax(as.numeric(p$variance), 0)))
       }),
-    stop("unknown emulator backend: ", backend, call. = FALSE))
+    stop(sprintf(
+      'unknown emulator backend "%s"; use "exact" (base R) or "pesto" (needs the PESTO package).',
+      backend), call. = FALSE))
 }
 
 # --- leave-one-out -----------------------------------------------------------

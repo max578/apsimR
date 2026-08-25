@@ -12,6 +12,8 @@
 # outcome (confounding), so a causal method (TACI, kernR) can be handed the
 # observed data and graded against the truth it cannot see.
 
+# --- result object -----------------------------------------------------------
+
 #' A known-causal-structure dataset generated from APSIM
 #'
 #' Holds the observed `(covariates, treatment, outcome)` data a causal method
@@ -33,6 +35,8 @@ apsim_ground_truth_result <- S7::new_class(
     seed = S7::new_property(S7::class_integer, default = NA_integer_)
   )
 )
+
+# --- OSSE generator ----------------------------------------------------------
 
 #' Generate a known-causal-structure dataset from APSIM (an OSSE)
 #'
@@ -113,6 +117,8 @@ apsim_ground_truth <- function(sim, treatment, control, treated, units, output,
   .apsim_osse(fm, treatment, control, treated, units, target, assignment, prob,
               confounder, confound_strength, seed)
 }
+
+# --- design core + print -----------------------------------------------------
 
 #' Assemble an OSSE from a forward model and a unit table
 #'

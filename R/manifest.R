@@ -7,6 +7,8 @@
 # downstream calibration / UQ / causal stack; `as_pesto_manifest()` bridges to
 # PESTO's S7 contract when that package is installed.
 
+# --- manifest object ---------------------------------------------------------
+
 #' An APSIM result as a contract-emitting manifest
 #'
 #' The typed result every verb returns. `inferential_target` follows the
@@ -67,6 +69,8 @@ apsim_manifest <- S7::new_class(
       seed = as.integer(seed), timestamp = Sys.time(), data_hash = hash)
   }
 )
+
+# --- PESTO bridge + print ----------------------------------------------------
 
 #' Bridge an `apsim_manifest` to a PESTO ensemble manifest
 #'

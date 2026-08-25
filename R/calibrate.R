@@ -147,9 +147,9 @@ apsim_calibrate <- function(sim, parm_paths, lower, upper, observed, output,
   } else if (length(pred) == length(observed)) {
     stats::setNames(pred, nm)
   } else {
-    stop("the forward model returned ", length(pred), " observation(s); ",
-         "expected ", length(observed), " aligned to `observed`.",
-         call. = FALSE)
+    stop(sprintf(
+      "the forward model returned %d observation(s); expected %d aligned to `observed`.",
+      length(pred), length(observed)), call. = FALSE)
   }
 }
 

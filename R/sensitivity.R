@@ -11,6 +11,8 @@
 # follow-up). Failed simulator runs are mean-imputed and counted, never silently
 # dropped.
 
+# --- public entry point ------------------------------------------------------
+
 #' Global sensitivity analysis of an APSIM output
 #'
 #' Quantifies how the `parm_paths` parameters drive a single scalar APSIM output

@@ -8,6 +8,8 @@
 # need no simulator; only `apsim_edit()` (which runs APSIM's own validator)
 # requires the runtime.
 
+# --- typed simulation handle -------------------------------------------------
+
 #' A simulation file (`.apsimx`) as a typed object
 #'
 #' Reads an `.apsimx` (JSON) file into an S7 object holding the absolute file
@@ -182,6 +184,8 @@ apsim_edit <- function(x, edits, path = tempfile(fileext = ".apsimx")) {
   }
   apsim_sim(path)
 }
+
+# --- print + coercion --------------------------------------------------------
 
 S7::method(print, apsim_sim) <- function(x, ...) {
   sims <- apsim_simulations(x)
