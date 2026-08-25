@@ -74,19 +74,24 @@ m
 `apsim_estimate()` runs the simulator across an input and fits a reduced-form
 mechanism (a saturating Mitscherlich dose-response by default), returning the
 fitted parameters as a `parameters` manifest -- the interpretable summary a
-causal or decision member consumes. The numeric fit is also usable directly:
+causal or decision member consumes. The default form is the classical
+saturating N-response curve of Mitscherlich (1909) `[unverified]`,
+
+$$y(x) = y_0 + y_{\max}\left(1 - e^{-r x}\right),$$
+
+with asymptote $y_{\max}$, zero-input intercept $y_0$ and curvature $r$
+governing how quickly the response saturates. `apsim_estimate()` fits this
+form by nonlinear least squares through the internal helper it calls,
+`apsimR:::.apsim_fit_response()`, which is what runs underneath every
+`apsim_estimate(sim, x, y)` call once the simulator is available:
 
 ```{r estimate-fit}
 set.seed(1)
 n_rate <- seq(0, 200, by = 10)
 yield  <- 1.1 + 4.2 * (1 - exp(-0.018 * n_rate)) +
   stats::rnorm(length(n_rate), 0, 0.1)
-fit <- stats::nls(
-  yield ~ y0 + ymax * (1 - exp(-rate * n_rate)),
-  start = list(y0 = 1, ymax = 4, rate = 0.02),
-  control = stats::nls.control(maxiter = 100))
-m <- apsim_manifest("parameters", "demo",
-                    params = as.data.frame(as.list(stats::coef(fit))))
+params <- apsimR:::.apsim_fit_response(n_rate, yield, response = "mitscherlich")
+m <- apsim_manifest("parameters", "demo", params = params)
 m@params
 ```
 
@@ -137,7 +142,7 @@ apsim_calibrate(
 ## Sensitivity analysis
 
 `apsim_sensitivity()` asks which inputs drive an output. Morris screening (the
-default) ranks factors by mean absolute elementary effect (`mu.star`) at a cost of
+default) ranks factors by mean absolute elementary effect (`mu_star`) at a cost of
 r(p + 1) runs and flags interaction or non-linearity (`sigma`); the Sobol-Jansen
 method decomposes the output variance into first-order (`S`) and total (`T`)
 indices at a higher cost of n(p + 2) runs. Both use the `sensitivity` package over
@@ -158,21 +163,57 @@ A single APSIM run costs seconds; a sweep needs thousands. `apsim_emulate()` run
 the simulator at a space-filling design once, fits a Gaussian-process surrogate,
 then predicts anywhere in microseconds with a calibrated uncertainty. Every
 emulator is returned with mandatory leave-one-out diagnostics -- an emulator whose
-honesty is unmeasured is worse than none. The squared-exponential exact GP that
-backs the default needs no extra package; here it learns a smooth function from a
-handful of points and reports its own out-of-sample error:
+honesty is unmeasured is worse than none. The default backend is a genuine exact
+GP with an automatic-relevance-determination (ARD) squared-exponential kernel,
 
-```{r emulate-demo}
+$$k(x, x') = \sigma_f^2 \exp\!\left(-\tfrac{1}{2}\sum_{j=1}^{p}
+  \frac{(x_j - x_j')^2}{\ell_j^2}\right) + \sigma_n^2 \,\mathbb{1}[x = x'],$$
+
+with a per-dimension length-scale $\ell_j$, signal variance $\sigma_f^2$ and
+noise variance $\sigma_n^2$ all fitted by maximising the exact log marginal
+likelihood (Rasmussen and Williams, 2006, *Gaussian Processes for Machine
+Learning* `[unverified]`), not fixed by a heuristic. It needs no extra package
+and is exercised directly here (via the internal training/prediction pair
+`apsimR:::.apsim_gp_train()` / `apsimR:::.apsim_gp_predict()` that
+`apsim_emulate()` itself calls) on a one-dimensional test function, with a
+genuine leave-one-out pass -- each point predicted from a GP refit on the other
+eleven -- rather than a stand-in smoother:
+
+```{r emulate-demo, fig.cap = "Leave-one-out predictions from the exact GP against the true test function, with the fitted 95% interval. Points falling outside their own interval are prediction failures the LOO pass is designed to catch; the caption below reports how many did."}
 set.seed(1)
 truth <- function(x) sin(x) + 0.1 * x
-xtr <- seq(0, 10, length.out = 12)
-# A leave-one-out pass: predict each point from the others.
-loo <- vapply(seq_along(xtr), function(i) {
-  fit <- stats::smooth.spline(xtr[-i], truth(xtr[-i]))
-  stats::predict(fit, xtr[i])$y
-}, numeric(1))
-sqrt(mean((truth(xtr) - loo)^2)) # honest LOO RMSE
+xtr <- matrix(seq(0, 10, length.out = 12), ncol = 1L)
+ytr <- truth(xtr[, 1L])
+
+# A genuine leave-one-out pass: refit the GP on the other 11 points and
+# predict the held-out one, for each point in turn.
+loo <- t(vapply(seq_len(nrow(xtr)), function(i) {
+  gp <- apsimR:::.apsim_gp_train(xtr[-i, , drop = FALSE], ytr[-i])
+  pr <- apsimR:::.apsim_gp_predict(gp, xtr[i, , drop = FALSE])
+  c(mean = pr$mean, sd = pr$sd)
+}, numeric(2)))
+loo_rmse <- sqrt(mean((ytr - loo[, "mean"])^2))
+lo <- loo[, "mean"] - 1.96 * loo[, "sd"]
+hi <- loo[, "mean"] + 1.96 * loo[, "sd"]
+covered <- ytr >= lo & ytr <= hi
+
+plot(xtr[, 1L], ytr, pch = 16, xlab = "x", ylab = "y",
+     ylim = range(c(lo, hi, ytr)),
+     main = sprintf("Exact-GP LOO: RMSE = %.3f, 95%% coverage = %d / %d",
+                     loo_rmse, sum(covered), length(covered)))
+lines(xtr[, 1L], loo[, "mean"], col = "steelblue")
+segments(xtr[, 1L], lo, xtr[, 1L], hi, col = "steelblue")
 ```
+
+Every held-out point sits close to its own leave-one-out prediction (RMSE
+`r round(loo_rmse, 3)` on this design), and the vertical bars -- the fitted 95%
+interval at each held-out point -- cover the truth at `r sum(covered)` of
+`r length(covered)` points here. A single twelve-point draw is far too small
+to certify calibration either way; the reported `coverage95` from a full
+`apsim_emulate()` run (typically evaluated over dozens of held-out points
+against a design of thirty or more) is the number to trust, and it can --
+and, on at least one independent Branin-function check, did -- run below its
+nominal 95%, so read it rather than assume the interval is calibrated.
 
 On the simulator the same idea fits an emulator of yield against nitrogen, with
 `apsim_emulate()` reporting the leave-one-out RMSE, R-squared and 95% coverage,
@@ -206,7 +247,11 @@ v@metadata$verdict # the Moriasi grade
 ```
 
 An observed-versus-predicted plot is available through `apsim_validation_plot()`
-when `ggplot2` is installed.
+when `ggplot2` is installed:
+
+```{r validate-plot, eval = requireNamespace("ggplot2", quietly = TRUE), fig.cap = "Simulated against observed values for the five-point demonstration pair, with the 1:1 line of perfect agreement. Points close to the line and on both sides of it (rather than all above or all below) indicate no systematic bias, consistent with the near-zero percent bias reported in `v@params`."}
+apsim_validation_plot(v)
+```
 
 ## Ground truth: APSIM as a causal test-bench
 
@@ -244,7 +289,11 @@ members.
 
 ## Composing with the orchestra
 
-Every result-returning verb produces an `apsim_manifest`, shaped for the `PESTO`
-ensemble-manifest contract; `as_pesto_manifest()` bridges to it when `PESTO` is
-installed, so APSIM output -- a prediction, a calibrated posterior, a sensitivity
-table -- flows directly into the calibration, uncertainty and causal stack.
+Every result-returning verb produces an `apsim_manifest`, a versioned,
+provenance-complete object of its own. A bridge to `PESTO`'s ensemble-manifest
+contract, `as_pesto_manifest()`, exists for when `PESTO` is installed, but it is
+not yet a working seam: `apsim_manifest` currently writes `method` values (for
+example `"apsim:predict"`) that `PESTO`'s validator does not recognise, so the
+bridge abstains rather than converts. Until that is closed, treat `apsim_manifest`
+objects as apsimR's own typed result, not as something that already flows
+directly into the calibration, uncertainty and causal stack.
