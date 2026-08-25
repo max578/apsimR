@@ -11,5 +11,15 @@ A \code{data.frame} with one row per \code{fact_family}: \code{n_facts},
 \code{n_grounded}, \code{n_unverified}.
 }
 \description{
-Grounding status summary for apsimR's external facts
+Collapses \code{\link[=apsim_external_facts]{apsim_external_facts()}} to one row per fact family, so a caller
+(or the \verb{/rpkg} audit driver) can see at a glance which classes of APSIM
+fact are grounded by a replayed real run and which are still
+\code{"[unverified]"}.
+}
+\examples{
+status <- apsim_fact_status()
+status
+# families with at least one unverified fact
+status[status$n_unverified > 0, ]
+
 }

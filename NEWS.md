@@ -1,3 +1,38 @@
+# apsimR (development version)
+
+* Added a GitHub Actions R-CMD-check workflow (macOS/Windows/Ubuntu across
+  release/devel/oldrel-1) so releases are verified on an independent runner
+  rather than only on this machine; the private `PESTO` test oracle is
+  dropped from `Suggests` before dependency resolution on the runner, and
+  its guarded tests skip there as designed.
+* Added a `README.md` with a purpose statement, install instructions and a
+  minimal runnable example.
+* Documented `apsim_fact_status()`'s previously-undocumented `@examples`.
+* Vignette: the emulation section now exercises the real exact-GP training
+  and prediction pair on a genuine leave-one-out pass, with a plotted
+  diagnostic, instead of demonstrating `stats::smooth.spline` under a
+  Gaussian-process label; the estimation section calls the same internal
+  fitter `apsim_estimate()` uses instead of a hand-rolled `nls()` call; both
+  sections now state the governing equation (the Mitscherlich dose-response,
+  the ARD squared-exponential kernel) rather than leaving the mathematics
+  implicit in R code; the validation section now renders the
+  observed-versus-predicted plot instead of only describing it; `mu.star` is
+  corrected to the emitted `mu_star`; and the closing "Composing with the
+  orchestra" section no longer states that the `PESTO` manifest bridge
+  already composes -- it currently abstains on every apsimR manifest and the
+  vignette now says so.
+* `DESCRIPTION` and the package-level documentation no longer claim the
+  `PESTO` ensemble-manifest bridge already composes; they describe it as
+  underway, matching `as_pesto_manifest()`'s current abstain-on-every-input
+  behaviour.
+* `apsim_validate()`'s documentation now states the Moriasi et al. (2007)
+  performance bands were derived for watershed/streamflow simulation, flags
+  the citation `[unverified]` pending a source check, and directs readers to
+  the joint NSE/RSR/PBIAS reading the source recommends rather than grading
+  on NSE alone.
+* Corrected `apsim_sensitivity()`'s documentation to name the emitted column
+  `mu_star`, not `mu.star`.
+
 # apsimR 0.3.0
 
 The `"exact"` emulator backend is now a genuine exact Gaussian process. It

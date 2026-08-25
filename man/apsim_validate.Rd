@@ -37,6 +37,17 @@ When both are data frames and \code{by} is given, they are joined on that key
 (matching simulated and observed rows by, say, date) before scoring; otherwise
 the two columns are paired by position and must be equal length.
 }
+\section{Verdict caveat}{
+ The typed grade in \code{metadata$verdict} reads on
+Nash-Sutcliffe efficiency (NSE) alone. The bands are those of Moriasi et
+al. (2007) \verb{[unverified against the source paper]}, derived for monthly
+watershed and streamflow simulations, not paddock-scale crop yield; that
+paper's own recommendation is a joint reading of NSE with \code{rsr} and
+\code{pbias} (both already reported in \code{params}), not NSE on its own. Treat the
+grade as a diagnostic starting point, and read all three metrics before
+trusting it.
+}
+
 \examples{
 obs <- c(2.1, 3.4, 4.0, 5.2)
 sim <- c(2.0, 3.6, 3.8, 5.0)
@@ -47,5 +58,6 @@ v@metadata$verdict
 \references{
 Moriasi, D. N. et al. (2007) Model evaluation guidelines for
 systematic quantification of accuracy in watershed simulations.
-\emph{Transactions of the ASABE} 50(3), 885-900.
+\emph{Transactions of the ASABE} 50(3), 885-900. \verb{[unverified]} -- cited from
+record, not diffed against the published source in this pass.
 }
