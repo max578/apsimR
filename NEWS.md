@@ -1,5 +1,12 @@
 # apsimR (development version)
 
+* The package vignette was brought to the orchestra's vignette quality bar:
+  a fixed Why/What/Do/Read/Limits/What-to-read-next/Reproduce shape, a
+  colourblind-safe `ggplot2` leave-one-out figure alongside the existing
+  observed-versus-predicted plot, `knitr::kable()` tables for every fitted
+  or designed table, every printed number interpreted inline in prose, and
+  guarded, one-sentence-explained skips for every simulator-dependent
+  section on a build without APSIM installed.
 * apsimR now emits the orchestra's general result contract natively:
   `as_orchestra_manifest()` lifts any `apsim_manifest` into an
   `orchestra_manifest` at schema `2.0.0-draft`, with `verify_manifest()` for
