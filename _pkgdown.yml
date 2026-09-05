@@ -64,6 +64,10 @@ reference:
   contents:
   - apsim_manifest
   - as_pesto_manifest
+  - orchestra_manifest
+  - as_orchestra_manifest
+  - verify_manifest
+  - manifest_summary
 
 - title: Runtime and abstention
   desc: >
