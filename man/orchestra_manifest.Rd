@@ -11,8 +11,8 @@ A versioned, hashed, provenance-complete S7 result object, property-compatible
 with the federation's reference \code{orchestra_manifest} and carrying the same
 bare class identity, so any orchestra consumer reads an apsimR result without
 special casing. Build one from an \code{\link[=apsim_manifest]{apsim_manifest()}} with
-\code{\link[optimix:as_orchestra_manifest]{optimix::as_orchestra_manifest()}} rather than calling this constructor directly.
+\code{\link[=as_orchestra_manifest]{as_orchestra_manifest()}} rather than calling this constructor directly.
 }
 \seealso{
-\code{\link[optimix:as_orchestra_manifest]{optimix::as_orchestra_manifest()}}, \code{\link[=verify_manifest]{verify_manifest()}}
+\code{\link[=as_orchestra_manifest]{as_orchestra_manifest()}}, \code{\link[=verify_manifest]{verify_manifest()}}
 }

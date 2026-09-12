@@ -25,5 +25,5 @@ verify_manifest(as_orchestra_manifest(m))
 
 }
 \seealso{
-\code{\link[optimix:as_orchestra_manifest]{optimix::as_orchestra_manifest()}}
+\code{\link[=as_orchestra_manifest]{as_orchestra_manifest()}}
 }

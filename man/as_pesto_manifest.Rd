@@ -31,7 +31,7 @@ produced. Every other apsimR result (a prediction, a screening table, an
 emulator, a validation verdict) is not an ensemble inversion, so the bridge
 returns a \code{feature_unsupported} \code{\link[=apsim_abstention]{apsim_abstention()}} naming the reason
 instead of a manifest whose slots would have to be invented. Those results
-compose through \code{\link[optimix:as_orchestra_manifest]{optimix::as_orchestra_manifest()}}, the federation's general contract.
+compose through \code{\link[=as_orchestra_manifest]{as_orchestra_manifest()}}, the federation's general contract.
 
 The bridged manifest is re-hashed with PESTO's own payload recipe, so
 \code{PESTO::verify_manifest()} verifies it; apsimR's own hash is kept in the
@@ -45,5 +45,5 @@ as_pesto_manifest(apsim_manifest("predictions", "apsim:predict",
 \dontshow{\}) # examplesIf}
 }
 \seealso{
-\code{\link[optimix:as_orchestra_manifest]{optimix::as_orchestra_manifest()}} for the general orchestra contract.
+\code{\link[=as_orchestra_manifest]{as_orchestra_manifest()}} for the general orchestra contract.
 }
