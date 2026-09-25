@@ -43,9 +43,14 @@ jobs:
           http-user-agent: ${{ matrix.config.http-user-agent }}
           use-public-rspm: true
 
+      # optimix is a private sibling used only as an optional test oracle
+      # (every use sits behind skip_if_not_installed). No runner can fetch it,
+      # so the resolver is told to ignore it rather than fail on it.
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
-          extra-packages: any::rcmdcheck
+          extra-packages: |
+            any::rcmdcheck
+            optimix=?ignore
           needs: check
           # non-CRAN siblings (proxymix, PESTO, kernR, masque) resolve from the
           # orchestra's r-universe; private members cannot be fetched by CI
