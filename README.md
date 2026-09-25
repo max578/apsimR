@@ -39,3 +39,20 @@ if (apsim_available()) {
 
 See `vignette("apsimR")` for prediction, calibration, sensitivity analysis,
 emulation, validation and the causal ground-truth generator end to end.
+
+## Contributing
+
+Bug reports and suggestions are welcome as
+[GitHub issues](https://github.com/max578/apsimR/issues).
+
+## Citation
+
+```r
+citation("apsimR")
+```
+
+## Licence
+
+MIT + file LICENSE. See [LICENSE](LICENSE) / [LICENSE.md](LICENSE.md). Used
+together with apsimx (GPL-3) or PESTO (GPL (>= 3)), the installed combination
+is a combined work under the GPL (>= 3).

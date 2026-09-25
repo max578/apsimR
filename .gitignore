@@ -21,3 +21,8 @@ dotnet-diagnostic-*
 
 # OS
 .DS_Store
+
+# Editor configuration
+.claude/
+.positai/
+.cursor/
