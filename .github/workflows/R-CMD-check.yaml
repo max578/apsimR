@@ -52,9 +52,6 @@ jobs:
             any::rcmdcheck
             optimix=?ignore
           needs: check
-          # non-CRAN siblings (proxymix, PESTO, kernR, masque) resolve from the
-          # orchestra's r-universe; private members cannot be fetched by CI
-          extra-repositories: 'https://max578.r-universe.dev'
 
       - uses: r-lib/actions/check-r-package@v2
         env:
