@@ -56,8 +56,8 @@ jobs:
       - uses: r-lib/actions/check-r-package@v2
         env:
           # optimix is a private sibling: unfetchable on a public runner, so an
-          # absent Suggests package must be a NOTE, not an error; PESTO resolves
-          # from the orchestra r-universe (extra-repositories above)
+          # absent Suggests package must be a NOTE, not an error; PESTO comes
+          # from its public GitHub repository (Remotes in DESCRIPTION)
           _R_CHECK_FORCE_SUGGESTS_: false
         with:
           upload-snapshots: true
