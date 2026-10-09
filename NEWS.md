@@ -1,4 +1,4 @@
-# apsimR (development version)
+# apsimR 0.3.0
 
 * The package vignette was brought to the orchestra's vignette quality bar:
   a fixed Why/What/Do/Read/Limits/What-to-read-next/Reproduce shape, a
@@ -37,11 +37,8 @@
   PESTO's own validator and hash verifier, and the contract tests assert against
   an independently authored sibling implementation of the same contract.
 
-* Added a GitHub Actions R-CMD-check workflow (macOS/Windows/Ubuntu across
-  release/devel/oldrel-1) so releases are verified on an independent runner
-  rather than only on this machine; the private `PESTO` test oracle is
-  dropped from `Suggests` before dependency resolution on the runner, and
-  its guarded tests skip there as designed.
+* Added a GitHub Actions R-CMD-check workflow. Tests that need the APSIM
+  simulator or the optional `optimix` package skip on the runner.
 * Added a `README.md` with a purpose statement, install instructions and a
   minimal runnable example.
 * Documented `apsim_fact_status()`'s previously-undocumented `@examples`.
@@ -53,24 +50,19 @@
   sections now state the governing equation (the Mitscherlich dose-response,
   the ARD squared-exponential kernel) rather than leaving the mathematics
   implicit in R code; the validation section now renders the
-  observed-versus-predicted plot instead of only describing it; `mu.star` is
-  corrected to the emitted `mu_star`; and the closing "Composing with the
-  orchestra" section no longer states that the `PESTO` manifest bridge
-  already composes -- it currently abstains on every apsimR manifest and the
-  vignette now says so.
-* `DESCRIPTION` and the package-level documentation no longer claim the
-  `PESTO` ensemble-manifest bridge already composes; they describe it as
-  underway, matching `as_pesto_manifest()`'s current abstain-on-every-input
-  behaviour.
+  observed-versus-predicted plot instead of only describing it; and `mu.star`
+  is corrected to the emitted `mu_star`.
 * `apsim_validate()`'s documentation now states the Moriasi et al. (2007)
-  performance bands were derived for watershed/streamflow simulation, flags
-  the citation `[unverified]` pending a source check, and directs readers to
-  the joint NSE/RSR/PBIAS reading the source recommends rather than grading
-  on NSE alone.
+  performance bands were derived for watershed/streamflow simulation and
+  directs readers to the joint NSE/RSR/PBIAS reading the source recommends
+  rather than grading on NSE alone. The citation now carries its DOI.
 * Corrected `apsim_sensitivity()`'s documentation to name the emitted column
   `mu_star`, not `mu.star`.
+* `apsim_external_facts()` marks an unchecked fact `"ungrounded"` in the
+  `grounding` column instead of `"[unverified]"`; `apsim_fact_status()` counts
+  both values.
 
-# apsimR 0.3.0
+## Exact Gaussian-process emulator
 
 The `"exact"` emulator backend is now a genuine exact Gaussian process. It
 previously fixed a single isotropic length-scale by the median-distance heuristic
