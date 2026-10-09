@@ -25,7 +25,7 @@ result?}
 A \code{manifest_summary} list.
 }
 \description{
-A non-ensemble inference -- a validation verdict, a decision -- has no honest
+A non-ensemble inference -- a validation verdict, a decision -- has no meaningful
 values for the ensemble payload slots and should not ride in \code{params} as a
 one-row pseudo-parameter table. The contract's optional \code{summary} slot carries
 the headline label, whether the emitter abstained, and the key metrics. It is

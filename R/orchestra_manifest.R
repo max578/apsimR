@@ -98,7 +98,7 @@ MANIFEST_VERSION <- "2.0.0-draft"
 
 #' A typed home for a headline verdict
 #'
-#' A non-ensemble inference -- a validation verdict, a decision -- has no honest
+#' A non-ensemble inference -- a validation verdict, a decision -- has no meaningful
 #' values for the ensemble payload slots and should not ride in `params` as a
 #' one-row pseudo-parameter table. The contract's optional `summary` slot carries
 #' the headline label, whether the emitter abstained, and the key metrics. It is

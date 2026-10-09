@@ -33,10 +33,10 @@ test_that("the exact GP fits ARD hyperparameters, not a fixed length-scale", {
   expect_equal(at_train$mean, y, tolerance = 1e-2)  # near-interpolation
   loo <- apsimR:::.apsim_emulator_loo(
     apsimR:::.apsim_emulator_backend("exact"), x, y)
-  expect_gt(loo$r2, 0.9)                            # honest out-of-sample skill
+  expect_gt(loo$r2, 0.9)                            # out-of-sample skill
 })
 
-test_that("leave-one-out diagnostics are honest on a smooth function", {
+test_that("leave-one-out diagnostics are accurate on a smooth function", {
   X <- matrix(seq(0, 10, length.out = 20L), ncol = 1L)
   y <- smooth_truth(X)
   loo <- apsimR:::.apsim_emulator_loo(
@@ -70,7 +70,7 @@ test_that("the pesto backend abstains when PESTO is absent", {
 })
 
 # Live emulation: skipped without APSIM. A fertiliser->yield emulator should fit.
-test_that("an APSIM yield emulator fits with honest LOO", {
+test_that("an APSIM yield emulator fits with good LOO accuracy", {
   skip_if_no_live_apsim()
   f <- apsim_example("Wheat")
   skip_if(is.na(f), "no Wheat example")

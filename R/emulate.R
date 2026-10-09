@@ -10,7 +10,7 @@
 # in/out) as the default backend, and composes PESTO's GP / random-feature
 # surrogates when present. Every
 # emulator is returned with mandatory leave-one-out diagnostics -- an emulator
-# whose own honesty is unmeasured is worse than none.
+# whose out-of-sample accuracy is unmeasured is worse than none.
 
 # --- exact GP backend (base R) -----------------------------------------------
 
@@ -166,8 +166,8 @@
 #' Refits the backend on each `n - 1` subset and predicts the held-out point, so
 #' the diagnostics measure genuine out-of-sample behaviour for any backend. Reports
 #' the LOO root-mean-square error, predictive R-squared, and the 95% interval
-#' coverage (the fraction of held-out points within `+/- 1.96 sd` -- honest if near
-#' `0.95`).
+#' coverage (the fraction of held-out points within `+/- 1.96 sd`; well calibrated if
+#' near `0.95`).
 #'
 #' @param backend A `(train, predict)` pair from [.apsim_emulator_backend()].
 #' @param X,y The full design and response.

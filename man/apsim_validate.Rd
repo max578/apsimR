@@ -58,6 +58,6 @@ v@metadata$verdict
 \references{
 Moriasi, D. N. et al. (2007) Model evaluation guidelines for
 systematic quantification of accuracy in watershed simulations.
-\emph{Transactions of the ASABE} 50(3), 885-900. \verb{[unverified]} -- cited from
-record, not diffed against the published source in this pass.
+\emph{Transactions of the ASABE} 50(3), 885-900.
+\doi{10.13031/2013.23153}
 }

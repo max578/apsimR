@@ -164,7 +164,7 @@ as_pesto_manifest <- function(x) {
 # PESTO 0.10.1's `pesto_ensemble_manifest` validator accepts exactly these five
 # method tags (read from the installed validator, not from memory). apsimR's own
 # method vocabulary is namespaced ("apsim:calibrate:ies"), so the bridge must
-# translate; a tag with no honest counterpart maps to NA and the bridge declines
+# translate; a tag with no matching counterpart maps to NA and the bridge declines
 # rather than mislabelling the algorithm that produced the ensemble.
 .PESTO_METHODS <- c("ies_callback", "ies_filter", "ies_pst", "mda", "surrogate")
 
@@ -178,7 +178,7 @@ as_pesto_manifest <- function(x) {
 #' @param method An apsimR method tag.
 #'
 #' @returns A single PESTO method token, or `NA_character_` when the tag has no
-#'   honest counterpart.
+#'   matching counterpart.
 #' @noRd
 #' @keywords internal
 .apsim_pesto_method <- function(method) {

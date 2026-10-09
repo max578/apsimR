@@ -144,8 +144,8 @@
 #'
 #' @references Moriasi, D. N. et al. (2007) Model evaluation guidelines for
 #'   systematic quantification of accuracy in watershed simulations.
-#'   *Transactions of the ASABE* 50(3), 885-900. `[unverified]` -- cited from
-#'   record, not diffed against the published source in this pass.
+#'   *Transactions of the ASABE* 50(3), 885-900.
+#'   \doi{10.13031/2013.23153}
 #'
 #' @examples
 #' obs <- c(2.1, 3.4, 4.0, 5.2)
