@@ -9,7 +9,7 @@ apsim_external_facts()
 \value{
 A \code{data.frame} with \code{fact_family}, \code{asserted_value}, \code{oracle_kind},
 \code{verified_on} (\code{Date}/\code{NA}), \code{evidence_path}, and a derived \code{grounding}
-token (\code{"grounded"} / \code{"[unverified]"}).
+token (\code{"grounded"} / \code{"ungrounded"}).
 }
 \description{
 Enumerates the class-8 facts apsimR asserts about the APSIM simulator -- the
@@ -21,8 +21,4 @@ are grounded by the replayed-real-run oracle test, not by a skipped test.
 }
 \examples{
 apsim_external_facts()
-}
-\seealso{
-The orchestra provenance vocabulary
-(\code{ORCHESTRA_dev/integration/provenance_vocabulary.md}).
 }

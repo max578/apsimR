@@ -9,7 +9,7 @@
 #
 # This registry enumerates each fact with the oracle that grounds it. A fact is
 # *grounded* (token "grounded") iff `verified_on` is a non-NA Date; otherwise
-# "[unverified]" (orchestra provenance vocabulary). The DataStore-schema and
+# "ungrounded" (orchestra provenance vocabulary). The DataStore-schema and
 # report-column facts below were grounded on 2026-06-09 by a REAL replayed
 # `Wheat.apsimx` run against APSIM NG 2026.5.8046.0 (the oracle test
 # tests/testthat/test-properties-recorded.R re-grounds them on every live run).
@@ -23,9 +23,11 @@
 # ---------------------------------------------------------------------------
 
 # Canonical grounding tokens (orchestra provenance vocabulary v1.0), hardcoded
-# identically because apsimR cannot source the contract layer.
+# identically because apsimR cannot source the contract layer. Readers also
+# accept "[unverified]", the token emitted before 0.3.0.
 .APSIMR_GROUNDED   <- "grounded"
-.APSIMR_UNVERIFIED <- "[unverified]"
+.APSIMR_UNVERIFIED <- "ungrounded"
+.APSIMR_UNGROUNDED_TOKENS <- c("ungrounded", "[unverified]")
 
 # Date a fact family was last diffed against the live APSIM install. A real
 # Wheat run on this date confirmed the DataStore schema + report columns.
@@ -80,7 +82,7 @@
 # ---- Canonical recipe-52 registry (the audit's F13/F14 contract surface) ----
 # Derived from `.apsimr_fact_seed()` so there is ONE source of truth. One row
 # per fact family; `value` lists the asserted members. `kind`/`oracle_types`
-# encode the recipe-52 taxonomy honestly: schema/enum/constant are *silent*
+# encode the recipe-52 taxonomy as it is: schema/enum/constant are *silent*
 # kinds (a wrong value returns wrong output with no error) and therefore carry a
 # D/E/F oracle -- here E (differential: the replayed real run vs the asserted
 # value) and B (schema/structure diff vs the authority's own DataStore). The
@@ -202,9 +204,7 @@
 #'
 #' @return A `data.frame` with `fact_family`, `asserted_value`, `oracle_kind`,
 #'   `verified_on` (`Date`/`NA`), `evidence_path`, and a derived `grounding`
-#'   token (`"grounded"` / `"[unverified]"`).
-#' @seealso The orchestra provenance vocabulary
-#'   (`ORCHESTRA_dev/integration/provenance_vocabulary.md`).
+#'   token (`"grounded"` / `"ungrounded"`).
 #' @export
 #' @examples
 #' apsim_external_facts()
@@ -218,9 +218,9 @@ apsim_external_facts <- function() {
 #' Grounding status summary for apsimR's external facts
 #'
 #' Collapses [apsim_external_facts()] to one row per fact family, so a caller
-#' (or the `/rpkg` audit driver) can see at a glance which classes of APSIM
+#' can see at a glance which classes of APSIM
 #' fact are grounded by a replayed real run and which are still
-#' `"[unverified]"`.
+#' `"ungrounded"`.
 #'
 #' @return A `data.frame` with one row per `fact_family`: `n_facts`,
 #'   `n_grounded`, `n_unverified`.
@@ -238,7 +238,7 @@ apsim_fact_status <- function() {
     grounding ~ fact_family, data = dt,
     FUN = function(g) c(n_facts = length(g),
                         n_grounded = sum(g == .APSIMR_GROUNDED),
-                        n_unverified = sum(g == .APSIMR_UNVERIFIED)))
+                        n_unverified = sum(g %in% .APSIMR_UNGROUNDED_TOKENS)))
   out <- data.frame(fact_family = agg$fact_family, agg$grounding)
   names(out) <- c("fact_family", "n_facts", "n_grounded", "n_unverified")
   out
