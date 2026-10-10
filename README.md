@@ -53,6 +53,4 @@ citation("apsimR")
 
 ## Licence
 
-MIT + file LICENSE. See [LICENSE](LICENSE) / [LICENSE.md](LICENSE.md). Used
-together with apsimx (GPL-3) or PESTO (GPL (>= 3)), the installed combination
-is a combined work under the GPL (>= 3).
+MIT + file LICENSE. See [LICENSE](LICENSE) / [LICENSE.md](LICENSE.md).

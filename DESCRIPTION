@@ -1,6 +1,6 @@
 Package: apsimR
 Title: APSIM Next Generation as a Contract-Emitting Analysis Member
-Version: 0.3.0
+Version: 0.3.1
 Authors@R:
     person("Max", "Moldovan", , "max.moldovan@adelaide.edu.au",
            role = c("aut", "cre", "cph"),
@@ -20,9 +20,6 @@ Description: A typed, server-capable R interface to APSIM Next Generation, the
     causal-inference tools; an ensemble inversion additionally bridges to a
     'PESTO' ensemble manifest. Execution degrades gracefully: every entry point
     abstains with a typed reason when the simulator or its runtime is absent.
-    The package's own sources are released under the MIT licence; when used with
-    'apsimx' (GPL-3) or 'PESTO' (GPL (>= 3)) the installed combination is a
-    combined work subject to the terms of the GPL (>= 3).
 License: MIT + file LICENSE
 URL: https://github.com/max578/apsimR
 BugReports: https://github.com/max578/apsimR/issues
@@ -41,7 +38,6 @@ Imports:
     tools,
     utils
 Suggests:
-    apsimx (>= 2.7.0),
     ggplot2,
     knitr,
     optimix (>= 0.1.0),

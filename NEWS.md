@@ -1,3 +1,11 @@
+# apsimR 0.3.1
+
+* Dropped `apsimx` from Suggests. No apsimR function, test or vignette uses it;
+  apsimR runs APSIM through the `Models` command line.
+* Removed the licence note that the package becomes a GPL combined work when
+  installed with `apsimx` or `PESTO`: `apsimx` is no longer suggested and PESTO
+  is MIT-licensed since 0.11.0.
+
 # apsimR 0.3.0
 
 * The package vignette was brought to the orchestra's vignette quality bar:
