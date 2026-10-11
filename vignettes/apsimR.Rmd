@@ -397,7 +397,7 @@ an observing-system simulation experiment (OSSE) -- a dataset of observed
 `(covariates, treatment, outcome)` whose true individual and average
 treatment effects are recorded alongside. Treatment can be assigned at
 random, or confounded by a covariate that also moves the outcome, so a
-causal member (such as the orchestra's TACI / kernR tools) can be handed the
+causal member (such as the orchestra's kernR tools) can be handed the
 observed data and graded against the truth it cannot see. Each unit needs
 two simulator runs (one per potential outcome), so this demonstration is
 also shown for its shape only:

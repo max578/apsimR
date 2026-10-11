@@ -9,7 +9,7 @@
 # dataset of observed (covariates, treatment, outcome) triples whose true
 # individual and average treatment effects are recorded alongside. Treatment can be
 # assigned at random (no confounding) or driven by a covariate that also moves the
-# outcome (confounding), so a causal method (TACI, kernR) can be handed the
+# outcome (confounding), so a causal method (such as kernR) can be handed the
 # observed data and graded against the truth it cannot see.
 
 # --- result object -----------------------------------------------------------

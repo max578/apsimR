@@ -1,3 +1,7 @@
+# apsimR 0.3.2
+
+* Documentation names kernR's mechanism-consistency test directly.
+
 # apsimR 0.3.1
 
 * Dropped `apsimx` from Suggests. No apsimR function, test or vignette uses it;
