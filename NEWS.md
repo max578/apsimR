@@ -1,3 +1,9 @@
+# apsimR (development version)
+
+* The package has a logo.
+* README carries status badges and lists related packages.
+* CI runs lintr (report-only) and test coverage.
+
 # apsimR 0.3.2
 
 * Documentation names kernR's mechanism-consistency test directly.

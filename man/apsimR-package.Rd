@@ -6,6 +6,8 @@
 \alias{apsimR-package}
 \title{apsimR: APSIM Next Generation as a Contract-Emitting Analysis Member}
 \description{
+\if{html}{\figure{logo.png}{options: style='float: right' alt='logo' width='120'}}
+
 A typed, server-capable R interface to APSIM Next Generation, the process-based agricultural systems simulator. Drives the simulator for prediction over scenario designs, mechanism-parameter estimation, parameter calibration against observations (a bounded optimiser, or an iterative ensemble smoother when 'PESTO' is present), global sensitivity analysis (Morris and Sobol), Gaussian-process emulation with leave-one-out diagnostics, validation against observations (goodness-of-fit metrics and a typed verdict), and the generation of known-causal-structure datasets for testing causal-inference methods, and returns results as a versioned, provenance-complete 'apsim_manifest' object that is emitted natively into the shared orchestra manifest contract, so simulator output composes directly with downstream calibration, uncertainty-quantification and causal-inference tools; an ensemble inversion additionally bridges to a 'PESTO' ensemble manifest. Execution degrades gracefully: every entry point abstains with a typed reason when the simulator or its runtime is absent.
 }
 \seealso{
