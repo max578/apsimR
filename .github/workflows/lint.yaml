@@ -27,7 +27,11 @@ jobs:
 
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
-          extra-packages: any::lintr, local::.
+          # optimix is skipped, as in R-CMD-check.yaml.
+          extra-packages: |
+            any::lintr
+            local::.
+            optimix=?ignore
           needs: lint
 
       - name: Lint
