@@ -187,7 +187,7 @@ apsim_edit <- function(x, edits, path = tempfile(fileext = ".apsimx")) {
 
 # --- print + coercion --------------------------------------------------------
 
-S7::method(print, apsim_sim) <- function(x, ...) {
+S7::`method<-`(print, apsim_sim, value = function(x, ...) {
   sims <- apsim_simulations(x)
   cat("<apsim_sim>\n")
   cat(sprintf("  file:        %s\n", basename(x@file)))
@@ -198,7 +198,7 @@ S7::method(print, apsim_sim) <- function(x, ...) {
                                        if (length(sims) > 4L) ", ..." else "",
                                        ")") else ""))
   invisible(x)
-}
+})
 
 # Coerce a path or an apsim_sim to an apsim_sim.
 .as_apsim_sim <- function(x) {

@@ -232,7 +232,7 @@ verify_manifest <- function(m) {
                  else "data_hash MISMATCH -- manifest payload was modified")
 }
 
-S7::method(print, orchestra_manifest) <- function(x, ...) {
+S7::`method<-`(print, orchestra_manifest, value = function(x, ...) {
   cat("<orchestra_manifest>\n")
   cat(sprintf("  schema:   %s\n", x@manifest_version))
   cat(sprintf("  emitter:  %s %s\n", x@emitter_package, x@emitter_version))
@@ -248,7 +248,7 @@ S7::method(print, orchestra_manifest) <- function(x, ...) {
   }
   cat(sprintf("  hash:     %s\n", x@data_hash))
   invisible(x)
-}
+})
 
 # --- the emit generic --------------------------------------------------------
 

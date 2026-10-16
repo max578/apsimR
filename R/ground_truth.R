@@ -192,7 +192,7 @@ apsim_ground_truth <- function(sim, treatment, control, treated, units, output,
     seed = if (is.null(seed)) NA_integer_ else as.integer(seed))
 }
 
-S7::method(print, apsim_ground_truth_result) <- function(x, ...) {
+S7::`method<-`(print, apsim_ground_truth_result, value = function(x, ...) {
   tr <- x@truth
   cat("<apsim_ground_truth>\n")
   cat(sprintf("  treatment:  %s\n", x@treatment))
@@ -206,4 +206,4 @@ S7::method(print, apsim_ground_truth_result) <- function(x, ...) {
   cat("  observed:   (", paste(names(x@observed), collapse = ", "), ")\n",
       sep = "")
   invisible(x)
-}
+})

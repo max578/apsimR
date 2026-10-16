@@ -320,7 +320,7 @@ S7::method(predict, apsim_emulator) <- function(object, newdata, ...) {
   data.frame(mean = p$mean, sd = p$sd)
 }
 
-S7::method(print, apsim_emulator) <- function(x, ...) {
+S7::`method<-`(print, apsim_emulator, value = function(x, ...) {
   cat("<apsim_emulator>\n")
   cat(sprintf("  backend: %s\n", x@backend))
   cat(sprintf("  inputs:  %s\n", paste(x@parm_paths, collapse = ", ")))
@@ -329,4 +329,4 @@ S7::method(print, apsim_emulator) <- function(x, ...) {
   cat(sprintf("  LOO:     rmse %.4g | R2 %.3f | cover95 %.2f\n",
               x@loo$rmse, x@loo$r2, x@loo$coverage95))
   invisible(x)
-}
+})

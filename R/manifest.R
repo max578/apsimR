@@ -246,7 +246,7 @@ as_pesto_manifest <- function(x) {
                         algo = "sha256", serialize = TRUE))
 }
 
-S7::method(print, apsim_manifest) <- function(x, ...) {
+S7::`method<-`(print, apsim_manifest, value = function(x, ...) {
   cat("<apsim_manifest>\n")
   cat(sprintf("  target:  %s\n", x@inferential_target))
   cat(sprintf("  method:  %s\n", x@method))
@@ -260,4 +260,4 @@ S7::method(print, apsim_manifest) <- function(x, ...) {
   }
   cat(sprintf("  hash:    %s\n", x@data_hash))
   invisible(x)
-}
+})

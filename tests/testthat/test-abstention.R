@@ -18,3 +18,9 @@ test_that("a missing reason is rejected", {
 test_that("print returns invisibly", {
   expect_invisible(print(apsim_abstention("run_failed")))
 })
+
+test_that("print dispatches to the abstention and server print methods", {
+  expect_false(is.null(getS3method("print", "apsim_abstention", optional = TRUE)))
+  expect_false(is.null(getS3method("print", "apsim_server", optional = TRUE)))
+  expect_output(print(apsim_abstention("run_failed")), "<apsim_abstention>")
+})
