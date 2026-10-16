@@ -124,3 +124,14 @@ test_that("the ies backend's own manifest bridges end to end", {
   expect_true(isTRUE(PESTO::verify_manifest(p)$ok))
   expect_identical(nrow(p@params), 20L)
 })
+
+test_that("a manifest prints its target, parameters and outputs", {
+  m <- apsim_manifest_by_target()$validation
+  expect_output(print(m), "target:  validation")
+  expect_output(print(m), "params:  n, rmse, nse, pbias, rsr")
+  expect_output(print(m), "outputs: 4 rows x 2 cols")
+})
+
+test_that("as_pesto_manifest needs an apsim_manifest", {
+  expect_error(as_pesto_manifest(list()), "apsim_manifest")
+})

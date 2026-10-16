@@ -63,3 +63,33 @@ test_that("the plot abstains without ggplot2, else returns a ggplot", {
     expect_true(is_apsim_abstention(p))
   }
 })
+
+test_that("scoring needs equal lengths and two complete pairs", {
+  expect_error(apsimR:::.apsim_gof(1:3, 1:2), "equal length")
+  expect_error(apsimR:::.apsim_gof(c(1, NA), c(1, 2)), "at least two")
+})
+
+test_that("data frame inputs must name an existing column", {
+  sim <- data.frame(Yield = c(2, 3))
+  expect_error(apsim_validate(sim, c(2, 3)), "predicted_col")
+  expect_error(apsim_validate(sim, c(2, 3), predicted_col = "Biomass"),
+               "no column `Biomass`")
+  expect_error(apsim_validate("2, 3", c(2, 3)), "must be an apsim_manifest")
+  expect_error(
+    apsim_validate(data.frame(d = 1:2, y = 1:2), data.frame(day = 1:2, y = 1:2),
+                   predicted_col = "y", observed_col = "y", by = "d"),
+    "must be a column of both")
+})
+
+test_that("a predictions manifest is scored from its outputs", {
+  m <- apsim_manifest("predictions", "apsim:predict",
+                      outputs = data.frame(Yield = c(2, 3.5, 4)))
+  v <- apsim_validate(m, c(2, 3.5, 4), predicted_col = "Yield")
+  expect_equal(v@params$rmse, 0)
+  expect_equal(v@params$nse, 1)
+})
+
+test_that("only a validation manifest can be plotted", {
+  m <- apsim_manifest_by_target()$predictions
+  expect_error(apsim_validation_plot(m), "apsim_validate")
+})

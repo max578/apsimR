@@ -75,3 +75,25 @@ test_that("an ensemble manifest carries weights and obs_target across", {
 test_that("as_orchestra_manifest rejects a non-manifest", {
   expect_error(as_orchestra_manifest(42), "apsim_manifest")
 })
+
+test_that("the contract validator rejects malformed slots", {
+  m <- as_orchestra_manifest(apsim_manifest_by_target()$predictions)
+  expect_error(m@run_id <- "", "run_id")
+  expect_error(m@inferential_target <- "forecasts", "inferential_target")
+  expect_error(m@data_hash <- c("a", "b"), "data_hash")
+  expect_error(m@summary <- list(headline = "good"), "manifest_summary")
+  expect_error(m@metadata <- list(derived = TRUE), "consumed_manifests")
+})
+
+test_that("verify_manifest refuses anything that is not a contract manifest", {
+  v <- verify_manifest(apsim_manifest_by_target()$predictions)
+  expect_false(v$ok)
+  expect_identical(v$message, "not an orchestra_manifest")
+})
+
+test_that("an orchestra manifest prints its target, outputs and hash", {
+  m <- as_orchestra_manifest(apsim_manifest_by_target()$predictions)
+  expect_output(print(m), "target:   predictions")
+  expect_output(print(m), "outputs:  2 rows x 2 cols")
+  expect_output(print(m), m@data_hash, fixed = TRUE)
+})
