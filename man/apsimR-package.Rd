@@ -14,6 +14,7 @@ A typed, server-capable R interface to APSIM Next Generation, the process-based 
 Useful links:
 \itemize{
   \item \url{https://github.com/max578/apsimR}
+  \item \url{https://max578.github.io/apsimR/}
   \item Report bugs at \url{https://github.com/max578/apsimR/issues}
 }
 
