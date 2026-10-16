@@ -81,3 +81,53 @@ test_that("an APSIM yield emulator fits with good LOO accuracy", {
   expect_s3_class(em, "apsimR::apsim_emulator", exact = FALSE)
   expect_true(is.finite(em@loo$rmse))
 })
+
+# apsim_emulate() itself, with the APSIM forward model replaced by the smooth
+# function above.
+local_smooth_forward_model <- function(fm, env = parent.frame()) {
+  testthat::local_mocked_bindings(
+    apsim_forward_model = function(sim, parm_paths, output, report = NULL,
+                                   ...) fm,
+    .env = env)
+}
+
+test_that("apsim_emulate fits a surrogate that predicts the function", {
+  local_smooth_forward_model(function(theta) cbind(Yield = smooth_truth(theta)))
+  em <- apsim_emulate(apsimx_fixture(), "x", lower = 0, upper = 10,
+                      output = "Yield", n = 15L, design = "grid", seed = 1L)
+  expect_s3_class(em, "apsimR::apsim_emulator", exact = FALSE)
+  expect_identical(em@target, "Yield")
+  expect_length(em@y, 15L)
+  q <- matrix(c(2.5, 7.3), ncol = 1L)
+  expect_equal(predict(em, q)$mean, smooth_truth(q), tolerance = 0.05)
+  expect_output(print(em), "design:  15 points")
+})
+
+test_that("design runs that fail are dropped before fitting", {
+  local_smooth_forward_model(function(theta) {
+    y <- smooth_truth(theta)
+    y[1L] <- NA_real_
+    cbind(Yield = y)
+  })
+  em <- apsim_emulate(apsimx_fixture(), "x", lower = 0, upper = 10,
+                      output = "Yield", n = 12L, design = "grid", seed = 1L)
+  expect_length(em@y, 11L)
+})
+
+test_that("too few finite design runs abstain instead of fitting", {
+  local_smooth_forward_model(function(theta) {
+    y <- rep(NA_real_, nrow(as.matrix(theta)))
+    y[1:2] <- 1
+    cbind(Yield = y)
+  })
+  ab <- apsim_emulate(apsimx_fixture(), "x", lower = 0, upper = 10,
+                      output = "Yield", n = 10L, seed = 1L)
+  expect_true(is_apsim_abstention(ab))
+  expect_identical(ab$reason, "run_failed")
+  expect_match(ab$detail, "only 2 of 10")
+})
+
+test_that("an unknown backend name is an error", {
+  expect_error(apsimR:::.apsim_emulator_backend("kriging"),
+               "unknown emulator backend")
+})

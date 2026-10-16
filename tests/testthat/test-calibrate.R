@@ -61,3 +61,57 @@ test_that("optim recovers a fertiliser rate from a target yield", {
   skip_if(is_apsim_abstention(m), "calibration unavailable")
   expect_equal(m@params[[1L]], 120, tolerance = 25)
 })
+
+# apsim_calibrate() itself, with the APSIM forward model replaced by the
+# analytic map above.
+local_analytic_forward_model <- function(fm = analytic_fm, env = parent.frame()) {
+  testthat::local_mocked_bindings(
+    apsim_forward_model = function(sim, parm_paths, output, report = NULL,
+                                   ...) fm,
+    .env = env)
+}
+
+test_that("apsim_calibrate with optim fits the target and names the parameters", {
+  local_analytic_forward_model()
+  m <- apsim_calibrate(apsimx_fixture(), c("a", "b"), lower = 0, upper = 5,
+                       observed = c(y = 5), output = "y", obs_sd = 0.2,
+                       backend = "optim", seed = 1L)
+  expect_identical(m@method, "apsim:calibrate:optim")
+  expect_identical(names(m@params), c("a", "b"))
+  expect_equal(2 * m@params$a + m@params$b, 5, tolerance = 1e-2)
+  expect_equal(m@outputs$predicted, 5, tolerance = 1e-2)
+  expect_identical(m@metadata$weights, 1 / 0.2^2)
+})
+
+test_that("explicit weights replace the default inverse variance", {
+  local_analytic_forward_model()
+  m <- apsim_calibrate(apsimx_fixture(), c("a", "b"), lower = 0, upper = 5,
+                       observed = c(y = 5), output = "y", weights = 3,
+                       backend = "optim")
+  expect_identical(m@metadata$weights, 3)
+})
+
+test_that("calibration inputs are validated before any run", {
+  expect_error(apsim_calibrate(apsimx_fixture(), "a", 1, 0, c(y = 1), "y"),
+               "must exceed")
+  expect_error(apsim_calibrate(apsimx_fixture(), "a", 0, 1, 1, "y"),
+               "named numeric")
+  expect_error(apsimR:::.apsim_obs_sd(c(1, 2, 3), c(y = 1, z = 2)),
+               "aligned")
+  expect_equal(apsimR:::.apsim_obs_sd(0.5, c(y = 1, z = 2)), c(0.5, 0.5))
+})
+
+test_that("a forward model with the wrong number of outputs is an error", {
+  local_analytic_forward_model(function(theta) {
+    cbind(p = 1, q = 2)
+  })
+  expect_error(
+    apsim_calibrate(apsimx_fixture(), c("a", "b"), 0, 5,
+                    observed = c(y = 5), output = "y", backend = "optim"),
+    "returned 2 observation")
+})
+
+test_that("predictions without names are aligned by position", {
+  pred <- apsimR:::.apsim_align_pred(c(1, 2), c(y = 1, z = 2))
+  expect_identical(pred, c(y = 1, z = 2))
+})

@@ -89,3 +89,39 @@ test_that("an APSIM OSSE produces a dataset with a finite ATE", {
   expect_true(is.finite(gr@truth$ate))
   expect_identical(names(gr@observed)[2:3], c("W", "Y"))
 })
+
+test_that("apsim_ground_truth records the closed-form ATE and prints it", {
+  testthat::local_mocked_bindings(
+    apsim_forward_model = function(sim, parm_paths, output, report = NULL,
+                                   ...) osse_fm)
+  units <- data.frame(x = c(1, 2, 3, 4))
+  gr <- apsim_ground_truth(apsimx_fixture(), "T", control = 0, treated = 10,
+                           units = units, output = "Y", seed = 1L)
+  # ITE = 10 (1 + 0.1 x), so the ATE over x = 1..4 is 10 + 2.5 = 12.5
+  expect_equal(gr@truth$ate, 12.5)
+  expect_identical(gr@seed, 1L)
+  expect_output(print(gr), "true ATE:   12.5")
+  expect_output(print(gr), "observed:   \\(x, W, Y\\)")
+})
+
+test_that("with every unit treated there is no naive contrast to print", {
+  units <- data.frame(x = c(1, 2, 3))
+  gr <- apsimR:::.apsim_osse(osse_fm, "T", control = 0, treated = 10,
+                            units = units, target = NULL,
+                            assignment = "random", prob = 1, confounder = NULL,
+                            confound_strength = 1, seed = 1L)
+  expect_true(is.na(gr@truth$naive_diff))
+  out <- utils::capture.output(print(gr))
+  expect_false(any(grepl("naive diff", out)))
+})
+
+test_that("fewer than two complete units abstain", {
+  all_na <- function(theta) cbind(Y = rep(NA_real_, nrow(as.matrix(theta))))
+  ab <- apsimR:::.apsim_osse(all_na, "T", control = 0, treated = 10,
+                            units = data.frame(x = 1:3), target = NULL,
+                            assignment = "random", prob = 0.5,
+                            confounder = NULL, confound_strength = 1,
+                            seed = 1L)
+  expect_true(is_apsim_abstention(ab))
+  expect_match(ab$detail, "only 0 of 3 units")
+})
