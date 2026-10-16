@@ -21,7 +21,7 @@ Description: A typed, server-capable R interface to APSIM Next Generation, the
     'PESTO' ensemble manifest. Execution degrades gracefully: every entry point
     abstains with a typed reason when the simulator or its runtime is absent.
 License: MIT + file LICENSE
-URL: https://github.com/max578/apsimR
+URL: https://github.com/max578/apsimR, https://max578.github.io/apsimR/
 BugReports: https://github.com/max578/apsimR/issues
 Depends:
     R (>= 4.1.0)
