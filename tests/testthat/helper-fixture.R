@@ -81,3 +81,62 @@ apsim_manifest_by_target <- function() {
       metadata = list(verdict = "good", governing_metric = "nse",
                       reference = "Moriasi et al. (2007)")))
 }
+
+# --- simulator stand-ins -----------------------------------------------------
+
+# Write an APSIM-shaped DataStore: the `_Simulations` and `_Checkpoints`
+# metadata tables plus one table per named report.
+write_datastore <- function(db, reports,
+                            simulations = data.frame(ID = 1L, Name = "Sim1"),
+                            checkpoints = data.frame(ID = 1L,
+                                                     Name = "Current")) {
+  con <- DBI::dbConnect(RSQLite::SQLite(), db)
+  on.exit(DBI::dbDisconnect(con), add = TRUE)
+  DBI::dbWriteTable(con, "_Simulations", simulations)
+  DBI::dbWriteTable(con, "_Checkpoints", checkpoints)
+  for (nm in names(reports)) {
+    DBI::dbWriteTable(con, nm, reports[[nm]])
+  }
+  invisible(db)
+}
+
+# Point apsimR at a stand-in `Models` file and answer its command line in R.
+# `run(work, extra)` handles a plain run of the copied file `work`;
+# `apply(cfg, work)` handles `Models --apply <cfg> <work>`; `--version` returns
+# `version_line`. Each returns the output lines, with a `status` attribute on
+# failure, as `system(intern = TRUE)` does. The caller restores discovery with
+# `on.exit(apsim_configure(), add = TRUE)`.
+local_fake_simulator <- function(run = NULL, apply = NULL,
+                                 version_line = "APSIM 2026.5.8046.0",
+                                 env = parent.frame()) {
+  models <- tempfile("Models")
+  file.create(models)
+  apsim_configure(models = models)
+  testthat::local_mocked_bindings(
+    .apsim_system = function(rt, args, tmpdir = NA_character_) {
+      args <- gsub("^['\"]|['\"]$", "", args)
+      if ("--version" %in% args) {
+        return(version_line)
+      }
+      if ("--apply" %in% args) {
+        return(apply(file.path(tmpdir, basename(args[[3L]])),
+                     file.path(tmpdir, basename(args[[4L]]))))
+      }
+      run(args[[2L]], args[-(1:2)])
+    },
+    .env = env
+  )
+  invisible(models)
+}
+
+# The DataStore path APSIM writes next to a simulation file.
+db_path <- function(work) {
+  paste0(tools::file_path_sans_ext(work), ".db")
+}
+
+# A failed command: output lines carrying a non-zero `status`.
+failed_run <- function(...) {
+  out <- c(...)
+  attr(out, "status") <- 1L
+  out
+}

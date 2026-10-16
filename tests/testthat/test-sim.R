@@ -49,3 +49,57 @@ test_that("on a real install, apsim_edit persists an edit", {
   # scratch directory for the relative-save invocation, then restores it).
   expect_identical(normalizePath(getwd()), wd_before)
 })
+
+test_that("apsim_edit sends the edits and a save command, and reads the result", {
+  on.exit(apsim_configure(), add = TRUE)
+  seen <- new.env()
+  local_fake_simulator(apply = function(cfg, work) {
+    seen$cfg <- readLines(cfg)
+    seen$wd <- getwd()
+    file.copy(work, file.path(dirname(work), "apsimR_edited.apsimx"))
+    "Saved"
+  })
+  src <- apsimx_fixture()
+  out_path <- tempfile(fileext = ".apsimx")
+  wd_before <- getwd()
+  out <- apsim_edit(apsim_sim(src), c("[Clock].End" = "1991-12-31"),
+                    path = out_path)
+  expect_true(S7::S7_inherits(out, apsim_sim))
+  expect_identical(out@file, normalizePath(out_path))
+  expect_identical(seen$cfg, c("[Clock].End = 1991-12-31",
+                               "save apsimR_edited.apsimx"))
+  # APSIM runs in the scratch directory; the caller's directory comes back
+  expect_false(identical(seen$wd, wd_before))
+  expect_identical(getwd(), wd_before)
+})
+
+test_that("a rejected edit abstains with the simulator's message", {
+  on.exit(apsim_configure(), add = TRUE)
+  local_fake_simulator(apply = function(cfg, work) {
+    failed_run("Error: cannot find [Clock].Ends")
+  })
+  out <- apsim_edit(apsim_sim(apsimx_fixture()), c("[Clock].Ends" = "1991"))
+  expect_true(is_apsim_abstention(out))
+  expect_identical(out$reason, "run_failed")
+  expect_match(out$detail, "cannot find")
+})
+
+test_that("edits must be named, and the verbs need an apsim_sim", {
+  sim <- apsim_sim(apsimx_fixture())
+  expect_error(apsim_edit(sim, "1991-12-31"), "named character vector")
+  expect_error(apsim_edit(apsimx_fixture(), c(a = "1")), "apsim_sim")
+  expect_error(apsim_simulations(apsimx_fixture()), "apsim_sim")
+  expect_error(apsim_write(apsimx_fixture()), "apsim_sim")
+})
+
+test_that("print lists at most four simulation names", {
+  sims <- paste0(
+    '{"$type":"Models.Core.Simulation, Models","Name":"S', 1:5,
+    '","Children":[]}', collapse = ",")
+  f <- tempfile(fileext = ".apsimx")
+  writeLines(paste0('{"$type":"Models.Core.Simulations, Models",',
+                    '"Name":"Simulations","Children":[', sims, ']}'), f)
+  sim <- apsim_sim(f)
+  expect_identical(apsim_simulations(sim), paste0("S", 1:5))
+  expect_output(print(sim), "simulations: 5 \\(S1, S2, S3, S4, \\.\\.\\.\\)")
+})

@@ -58,3 +58,71 @@ test_that("the forward model runs APSIM and gives a monotone N response", {
   expect_equal(dim(obs), c(2L, 1L))
   expect_gt(obs[2L, 1L], obs[1L, 1L])
 })
+
+# The forward model with the simulator replaced by an R stand-in: each run
+# reads the `--apply` config and writes Yield = 10 * value to the DataStore.
+# A negative value fails the run.
+fake_apply_yield <- function(cfg, work) {
+  lines <- readLines(cfg)
+  value <- as.numeric(sub("^.* = ", "", lines[[1L]]))
+  if (value < 0) {
+    return(failed_run("Error: negative rate"))
+  }
+  write_datastore(db_path(work), list(
+    Report = data.frame(SimulationID = 1L, CheckpointID = 1L,
+                        Yield = c(0, 10 * value))))
+  "Finished"
+}
+
+test_that("each row of theta is one run, reduced to the report's final value", {
+  on.exit(apsim_configure(), add = TRUE)
+  local_fake_simulator(apply = fake_apply_yield)
+  fm <- apsim_forward_model(apsimx_fixture(), "[Fertilise at sowing].Script.Amount",
+                            output = "Yield")
+  obs <- fm(matrix(c(1, 2.5), ncol = 1L))
+  expect_identical(colnames(obs), "Yield")
+  expect_equal(obs[, "Yield"], c(10, 25))
+})
+
+test_that("the config line carries the parameter path and the value", {
+  on.exit(apsim_configure(), add = TRUE)
+  seen <- new.env()
+  local_fake_simulator(apply = function(cfg, work) {
+    seen$cfg <- readLines(cfg)
+    fake_apply_yield(cfg, work)
+  })
+  fm <- apsim_forward_model(apsimx_fixture(), "[Sow].Script.Population",
+                            output = "Yield")
+  fm(120)
+  expect_identical(seen$cfg, c("[Sow].Script.Population = 120", "run"))
+})
+
+test_that("a failed run is an NA row and an all-failed batch is an error", {
+  on.exit(apsim_configure(), add = TRUE)
+  local_fake_simulator(apply = fake_apply_yield)
+  fm <- apsim_forward_model(apsimx_fixture(), "[X].p", output = "Yield")
+  obs <- fm(matrix(c(2, -1), ncol = 1L))
+  expect_equal(obs[, "Yield"], c(20, NA))
+  expect_error(fm(matrix(-1, ncol = 1L)), "every APSIM realisation failed")
+})
+
+test_that("a run whose output function fails is an NA row", {
+  on.exit(apsim_configure(), add = TRUE)
+  local_fake_simulator(apply = fake_apply_yield)
+  fm <- apsim_forward_model(apsimx_fixture(), "[X].p",
+                            output = function(report) {
+                              if (report$Yield[2L] > 50) stop("too high")
+                              c(Yield = report$Yield[2L])
+                            })
+  obs <- fm(matrix(c(1, 9), ncol = 1L))
+  expect_equal(obs[, "Yield"], c(10, NA))
+})
+
+test_that("parameter paths must be given", {
+  on.exit(apsim_configure(), add = TRUE)
+  local_fake_simulator(apply = fake_apply_yield)
+  expect_error(apsim_forward_model(apsimx_fixture(), character(0),
+                                   output = "Yield"),
+               "non-empty character vector")
+  expect_error(apsimR:::.apsim_observe_fn(character(0)), "non-empty")
+})
