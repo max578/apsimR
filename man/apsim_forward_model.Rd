@@ -10,7 +10,8 @@ apsim_forward_model(
   output,
   report = NULL,
   checkpoint = "Current",
-  reduce = function(x) x[[length(x)]]
+  reduce = function(x) x[[length(x)]],
+  cores = 1L
 )
 }
 \arguments{
@@ -28,6 +29,12 @@ names (reduced by \code{reduce}).}
 \item{checkpoint}{Character checkpoint name (default \code{"Current"}).}
 
 \item{reduce}{When \code{output} names columns, the \verb{function(numeric) -> numeric(1)} reducing each column (default takes the final value).}
+
+\item{cores}{Number of APSIM runs in flight at once (default \code{1L}, serial).
+With \code{cores > 1} each realisation runs in a forked R process
+(\code{\link[parallel:mclapply]{parallel::mclapply()}}), each driving its own \code{Models} process in its own
+scratch directory; rows of the result keep the order of \code{theta}. Forking is
+unavailable on Windows, where runs stay serial.}
 }
 \value{
 A function of one argument \code{theta} (an \verb{nreal x npar} matrix or a

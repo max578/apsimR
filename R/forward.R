@@ -149,6 +149,11 @@
 #' @param checkpoint Character checkpoint name (default `"Current"`).
 #' @param reduce When `output` names columns, the `function(numeric) ->
 #'   numeric(1)` reducing each column (default takes the final value).
+#' @param cores Number of APSIM runs in flight at once (default `1L`, serial).
+#'   With `cores > 1` each realisation runs in a forked R process
+#'   ([parallel::mclapply()]), each driving its own `Models` process in its own
+#'   scratch directory; rows of the result keep the order of `theta`. Forking is
+#'   unavailable on Windows, where runs stay serial.
 #'
 #' @returns A function of one argument `theta` (an `nreal x npar` matrix or a
 #'   length-`npar` vector) returning an `nreal x nobs` numeric matrix, or an
@@ -166,7 +171,13 @@
 #' @export
 apsim_forward_model <- function(sim, parm_paths, output, report = NULL,
                                 checkpoint = "Current",
-                                reduce = function(x) x[[length(x)]]) {
+                                reduce = function(x) x[[length(x)]],
+                                cores = 1L) {
+  if (!is.numeric(cores) || length(cores) != 1L || is.na(cores) ||
+      cores < 1 || cores != round(cores)) {
+    stop("`cores` must be a single positive whole number.", call. = FALSE)
+  }
+  cores <- as.integer(cores)
   s <- .as_apsim_sim(sim)
   rt <- .apsim_resolve()
   if (is.na(rt$models) || !file.exists(rt$models)) {
@@ -186,10 +197,21 @@ apsim_forward_model <- function(sim, parm_paths, output, report = NULL,
   function(theta) {
     theta <- .apsim_as_theta(theta, parm_paths)
     nreal <- nrow(theta)
-    rows <- lapply(seq_len(nreal), function(i) {
+    eval_row <- function(i) {
       .apsim_forward_eval(rt, base_file, parm_paths, theta[i, ], observe,
                           report, checkpoint)
-    })
+    }
+    rows <- if (cores > 1L && nreal > 1L && !.is_windows()) {
+      # One fork per run (no prescheduling): run times vary with the season, so
+      # a free worker takes the next row. A child that dies or errors returns a
+      # `try-error`, which is a failed run like any other.
+      out <- parallel::mclapply(seq_len(nreal), eval_row,
+                                mc.cores = min(cores, nreal),
+                                mc.preschedule = FALSE)
+      lapply(out, function(r) if (inherits(r, "try-error")) NULL else r)
+    } else {
+      lapply(seq_len(nreal), eval_row)
+    }
     .apsim_bind_obs(rows)
   }
 }

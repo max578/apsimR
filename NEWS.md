@@ -1,5 +1,8 @@
 # apsimR (development version)
 
+* `apsim_forward_model()` gains `cores`: with `cores > 1` the realisations run
+  in parallel, one forked R process and one `Models` process per run, in row
+  order (serial on Windows).
 * The package has a logo.
 * README carries status badges and lists related packages.
 * CI runs lintr (report-only) and test coverage.

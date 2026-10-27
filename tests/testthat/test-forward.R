@@ -126,3 +126,23 @@ test_that("parameter paths must be given", {
                "non-empty character vector")
   expect_error(apsimR:::.apsim_observe_fn(character(0)), "non-empty")
 })
+
+test_that("parallel runs give the serial result in theta's row order", {
+  skip_on_os("windows")
+  on.exit(apsim_configure(), add = TRUE)
+  local_fake_simulator(apply = fake_apply_yield)
+  theta <- matrix(c(3, -1, 0.5, 7, 2), ncol = 1L)
+  serial <- apsim_forward_model(apsimx_fixture(), "[X].p", output = "Yield")
+  forked <- apsim_forward_model(apsimx_fixture(), "[X].p", output = "Yield",
+                                cores = 2L)
+  expect_identical(forked(theta), serial(theta))
+  expect_equal(forked(theta)[, "Yield"], c(30, NA, 5, 70, 20))
+})
+
+test_that("cores must be a single positive whole number", {
+  for (bad in list(0, -1, 1.5, NA_real_, c(1, 2), "2")) {
+    expect_error(apsim_forward_model(apsimx_fixture(), "[X].p",
+                                     output = "Yield", cores = bad),
+                 "`cores`")
+  }
+})

@@ -30,6 +30,7 @@ Imports:
     digest,
     jsonlite,
     lhs,
+    parallel,
     processx,
     RSQLite,
     S7,
