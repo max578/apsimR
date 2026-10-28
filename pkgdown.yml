@@ -1,0 +1,9 @@
+pandoc: 3.8.3
+pkgdown: 2.2.1
+pkgdown_sha: ~
+articles:
+  apsimR: apsimR.html
+last_built: 2026-10-28T00:54Z
+urls:
+  reference: https://max578.github.io/apsimR/reference
+  article: https://max578.github.io/apsimR/articles
